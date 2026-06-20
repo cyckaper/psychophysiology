@@ -204,7 +204,7 @@ function classify(arr){
 }
 function readJSON(file,cb){const r=new FileReader();r.onload=()=>{try{cb(JSON.parse(r.result));}catch(e){alert("「"+file.name+"」不是有效的 JSON（可能是圖片或非匯出檔）。");}};r.readAsText(file);}
 
-/* ---- 從後端抓取(/api/data) ---- */
+/* ---- 從後端抓取(/api/data，v2：每筆即一場，含三條流) ---- */
 function shortSession(s){s=String(s||"");return s.length>8?"…"+s.slice(-6):s;}
 function clearParticipants(){participants=[];seq=0;$("#pcards").innerHTML="";}
 async function fetchFromBackend(){
@@ -215,21 +215,20 @@ async function fetchFromBackend(){
   note.style.display="block";note.textContent="抓取中…";
   let arr;
   try{
-    const r=await fetch(b+"/api/data?project="+encodeURIComponent(proj));
+    const r=await fetch(b+"/api/data?project="+encodeURIComponent(proj)+"&t="+Date.now(),{cache:"no-store"});
     if(!r.ok)throw new Error("HTTP "+r.status);
     arr=await r.json();
   }catch(e){note.textContent="抓取失敗："+e.message;return;}
   if(!Array.isArray(arr)||!arr.length){note.textContent="後端目前沒有「"+proj+"」的資料(尚未有裝置上傳)。";return;}
-  // 依 (編號 code × 場次 session) 分組,每組一位參與者
-  const groups={};
-  arr.forEach(rec=>{
-    const key=(rec.code||"NA")+"||"+(rec.session||"NA");
-    const g=groups[key]||(groups[key]={code:rec.code||"NA",session:rec.session||"NA",uploadedAt:0,phys:[],track:[],env:[]});
-    g.uploadedAt=Math.max(g.uploadedAt,rec.uploadedAt||0);
-    const d=Array.isArray(rec.data)?rec.data:[];
-    if(rec.kind==="physiology")g.phys=d; else if(rec.kind==="location")g.track=d; else if(rec.kind==="environment")g.env=d;
-  });
-  const list=Object.values(groups).filter(g=>g.phys.length||g.track.length||g.env.length).sort((a,b)=>b.uploadedAt-a.uploadedAt);
+  // 每筆 = 一個場次（含 physiology / location / environment）
+  const list=arr.map(r=>({
+      code:r.code||"NA", session:r.session||"NA", uploadedAt:r.uploadedAt||0,
+      phys:Array.isArray(r.physiology)?r.physiology:[],
+      track:Array.isArray(r.location)?r.location:[],
+      env:Array.isArray(r.environment)?r.environment:[]
+    }))
+    .filter(g=>g.phys.length||g.track.length||g.env.length)
+    .sort((a,b)=>b.uploadedAt-a.uploadedAt);
   if(!list.length){note.textContent="後端有「"+proj+"」但都是空的場次。";return;}
   clearParticipants();
   list.forEach(g=>addParticipant({label:g.code+"·"+shortSession(g.session),phys:g.phys,track:g.track,env:g.env}));
