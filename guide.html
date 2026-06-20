@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEALS 場域研究 · 操作手冊</title>
+<style>
+  :root{
+    --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
+    --moss:#5b7a45; --moss-deep:#3f5a2f; --teal:#2c6b5f; --clay:#b8694a;
+    --ink:#33301f; --soft:#6b6750;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;
+    line-height:1.7;font-size:16px;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 18px 80px;}
+  h1{font-family:"Noto Serif TC",Georgia,serif;font-size:25px;margin:.2em 0 .1em;color:var(--moss-deep);letter-spacing:.5px;}
+  .sub{color:var(--soft);font-size:14.5px;margin:0 0 18px;}
+  h2{font-family:"Noto Serif TC",Georgia,serif;font-size:20px;color:var(--moss-deep);
+    margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
+  h3{font-size:16.5px;margin:18px 0 6px;color:var(--teal);}
+  p{margin:.5em 0;}
+  .rule{height:3px;background:linear-gradient(90deg,var(--moss),var(--teal));border-radius:3px;margin:6px 0 4px;}
+  .phase{margin:18px 0;border-left:4px solid var(--moss);background:var(--paper);
+    border:1px solid var(--line);border-left:4px solid var(--moss);border-radius:10px;padding:14px 16px;}
+  .phase.b{border-left-color:var(--teal)}
+  .phase.c{border-left-color:var(--clay)}
+  .phase.d{border-left-color:#9a7b2e}
+  .phase.e{border-left-color:var(--moss-deep)}
+  .ptitle{font-family:"Noto Serif TC",serif;font-size:17px;color:var(--moss-deep);margin:0 0 4px;font-weight:600;}
+  .step{margin:12px 0;padding:11px 13px;background:var(--cream);border:1px solid var(--line);border-radius:9px;}
+  .step .n{display:inline-block;min-width:26px;height:26px;line-height:26px;text-align:center;
+    background:var(--moss);color:#fff;border-radius:50%;font-weight:700;font-size:14px;margin-right:8px;}
+  .step .t{font-weight:700;}
+  .step .lab{display:inline-block;font-size:12.5px;font-weight:700;color:#fff;background:var(--teal);
+    border-radius:6px;padding:1px 7px;margin-right:6px;}
+  .step .lab.do{background:var(--clay)}
+  .step .row{margin:5px 0 0;}
+  .chk{color:var(--moss-deep);font-weight:600;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14.5px;background:var(--paper);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:#f1ece0;color:var(--moss-deep);font-weight:700;}
+  tr:last-child td{border-bottom:none;}
+  code{background:#f1ece0;border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13.5px;color:var(--moss-deep);}
+  .note{background:#fff8ee;border:1px solid #ecd9bf;border-left:4px solid var(--clay);
+    border-radius:9px;padding:12px 14px;margin:14px 0;font-size:14.5px;}
+  .note b{color:var(--clay);}
+  .tip{background:#f3f7ee;border:1px solid #d9e6cc;border-left:4px solid var(--moss);
+    border-radius:9px;padding:12px 14px;margin:14px 0;font-size:14.5px;}
+  ul{margin:.4em 0;padding-left:1.25em;}
+  li{margin:.3em 0;}
+  .small{font-size:13px;color:var(--soft);}
+  .pill{display:inline-block;font-size:12.5px;background:#eef3e8;border:1px solid #d9e6cc;color:var(--moss-deep);
+    border-radius:20px;padding:2px 10px;margin:2px 4px 2px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>HEALS 場域研究 · 操作手冊</h1>
+  <p class="sub">遠端遙控 → 連續收集 → 自動回傳 → 心率路線圖。一份從頭到尾的操作流程。</p>
+  <div class="rule"></div>
+
+  <h2>一、系統由哪幾塊組成</h2>
+  <p>四個角色,各司其職:</p>
+  <ul>
+    <li><b>控制面板</b>（網頁）<code>psycho-physiology.healsdesign.org</code>　研究主持人按「開始／停止」下指令、看各專案狀態。</li>
+    <li><b>後端</b>（Netlify 函式 + Blobs）　記住每個專案的指令、收各裝置上傳的資料。看不到、不用管,自動運作。</li>
+    <li><b>HealthProbe</b>（iPhone App，搭配 Apple Watch）　受測者裝置：輪詢後端、自動開始記錄、把資料上傳。</li>
+    <li><b>資料主控台 console</b>（網頁）<code>…/console.html</code>　把後端的資料抓回來，出地圖與 Excel。</li>
+  </ul>
+  <p class="small">資料流：<b>面板按開始 → 後端記指令 → 手機輪詢到、自動清空＋開軌跡＋開基線 →（走測＋手錶運動）→ 面板按停止 → 手機上傳 → console 抓取出圖</b>。</p>
+
+  <h2>二、一次性設定（每台裝置做一次就好）</h2>
+  <div class="step">
+    <span class="lab">目的</span>讓每台受測裝置認得後端、知道自己是哪一號。
+    <div class="row"><span class="lab do">操作</span>HealthProbe →「工具」→「遠端總開關」，填三格並保存：</div>
+    <table>
+      <tr><th>欄位</th><th>填什麼</th><th>說明</th></tr>
+      <tr><td>後端網址</td><td><code>https://psycho-physiology.healsdesign.org</code></td><td>所有裝置都一樣。結尾有沒有 <code>/</code> 都行。</td></tr>
+      <tr><td>專案名稱</td><td>例：<code>aa</code>、<code>大安森林A</code></td><td><b>必須和面板上那個專案一字不差</b>（含大小寫、空格）。</td></tr>
+      <tr><td>本機編號</td><td>例：<code>#1</code>、<code>#2</code></td><td>一組「Apple Watch ＋ iPhone」＝一個編號＝一位受測者。多人時各填各的。</td></tr>
+    </table>
+  </div>
+  <div class="tip"><b>多受測者：</b>每台手機填「同一個專案名 ＋ 自己的編號」，就會一起聽同一個開關，各自上傳到同一個專案底下。</div>
+
+  <h2>三、單場走測流程</h2>
+  <p class="small">分五個階段。每步都標了「目的」與「操作」。</p>
+
+  <div class="phase">
+    <div class="ptitle">階段 A · 開始前（在起點、室外開闊處）</div>
+
+    <div class="step"><span class="n">1</span><span class="t">打開控制面板、選好專案</span>
+      <div class="row"><span class="lab">目的</span>準備好要下指令的專案。</div>
+      <div class="row"><span class="lab do">操作</span>手機或電腦開面板 → 若沒有該專案，於「新增專案」輸入名稱後「加入」。</div>
+    </div>
+
+    <div class="step"><span class="n">2</span><span class="t">受測者手機：開好遠端總開關</span>
+      <div class="row"><span class="lab">目的</span>讓手機開始持續詢問後端「研究開始了沒」。</div>
+      <div class="row"><span class="lab do">操作</span>HealthProbe →「工具」→「遠端總開關」→ 確認三格設定無誤 → 打開「<b>自動輪詢（每 20 秒）</b>」。</div>
+    </div>
+
+    <div class="step"><span class="n">3</span><span class="t">Apple Watch：開始「戶外步行」運動</span>
+      <div class="row"><span class="lab">目的</span><b>關鍵步驟。</b>只有在運動進行中，手錶才會密集量心率（約每 5 秒一次）；平時背景量得很稀疏，畫不出沿路漸層。</div>
+      <div class="row"><span class="lab do">操作</span>手錶 → 體能訓練 →「戶外步行」→ 開始。</div>
+    </div>
+
+    <div class="step"><span class="n">4</span><span class="t">面板：對該專案按「開始」</span>
+      <div class="row"><span class="lab">目的</span>正式下達「研究開始」指令，後端會給這一場一個專屬場次號。</div>
+      <div class="row"><span class="lab do">操作</span>面板上找到專案 → 按綠色「開始」→ 狀態變「研究中」。</div>
+    </div>
+
+    <div class="step"><span class="n">5</span><span class="t">回手機確認已開始記錄</span>
+      <div class="row"><span class="lab">目的</span>確定手機真的收到指令、開始記錄。</div>
+      <div class="row"><span class="lab do">操作</span>切回 HealthProbe 的遠端總開關頁（讓它在前景）→ 20 秒內、或按「立即檢查一次」→ 應看到：</div>
+      <div class="row"><span class="chk">　• 專案狀態 →「研究中」（綠）</span></div>
+      <div class="row"><span class="chk">　• 本機動作 →「✅ 已開始本場記錄：清空軌跡＋開軌跡＋開基線」</span></div>
+      <div class="row"><span class="chk">　• 第一次會問定位權限 → 選「永遠允許」</span></div>
+      <div class="row"><span class="chk">　• 螢幕最上方出現藍色定位列（＝背景定位記錄中）</span></div>
+    </div>
+  </div>
+
+  <div class="phase b">
+    <div class="ptitle">階段 B · 走測</div>
+    <div class="step"><span class="n">6</span><span class="t">沿規劃路線走</span>
+      <div class="row"><span class="lab">目的</span>同時收集心率（手錶）、GPS 軌跡（手機）、環境（自動）。</div>
+      <div class="row"><span class="lab do">操作</span>可鎖屏，走 <b>5–10 分鐘、數百公尺</b>，盡量在<b>開闊天空下</b>（室內 GPS 會飄）。手錶運動全程別停。</div>
+    </div>
+  </div>
+
+  <div class="phase c">
+    <div class="ptitle">階段 C · 結束</div>
+    <div class="step"><span class="n">7</span><span class="t">面板：按「停止」</span>
+      <div class="row"><span class="lab">目的</span>結束這一場、記下停止時間。</div>
+      <div class="row"><span class="lab do">操作</span>面板對該專案按「停止」→ 狀態變「已停止」。</div>
+    </div>
+    <div class="step"><span class="n">8</span><span class="t">回手機確認已停止</span>
+      <div class="row"><span class="lab">目的</span>確定軌跡記錄已收。</div>
+      <div class="row"><span class="lab do">操作</span>HealthProbe 遠端總開關 → 按「立即檢查一次」→ 本機動作顯示「■ 已停止本場軌跡記錄」、藍色定位列消失。</div>
+    </div>
+    <div class="step"><span class="n">9</span><span class="t">Apple Watch：結束運動</span>
+      <div class="row"><span class="lab">目的</span>結束體能訓練、停止密集量測。</div>
+      <div class="row"><span class="lab do">操作</span>手錶上結束「戶外步行」。</div>
+    </div>
+  </div>
+
+  <div class="phase d">
+    <div class="ptitle">階段 D · 同步 ＋ 撈取（最關鍵、最容易漏）</div>
+    <div class="step"><span class="n">10</span><span class="t">讓手錶把心率同步到手機</span>
+      <div class="row"><span class="lab">目的</span>手錶的心率不是即時傳到手機的，要先同步過去，手機才撈得到。</div>
+      <div class="row"><span class="lab do">操作</span><b>把 Apple Watch 放上充電座</b>（最可靠、最快的同步觸發）→ 等 3–5 分鐘。<span class="small">不充電也會慢慢同步，只是較久且不固定；詳見下方說明。</span></div>
+    </div>
+    <div class="step"><span class="n">11</span><span class="t">App 撈取生理</span>
+      <div class="row"><span class="lab">目的</span>把同步好的心率，收進 App 的生理資料流。</div>
+      <div class="row"><span class="lab do">操作</span>HealthProbe → 撈取生理那頁 → 按「撈取」→ 看「本次新增」數字跳上來（這趟的心率到了）。沒跳就再等一下、再撈一次。</div>
+    </div>
+  </div>
+
+  <div class="phase e">
+    <div class="ptitle">階段 E · 上傳 ＋ 出圖</div>
+    <div class="step"><span class="n">12</span><span class="t">上傳本場資料</span>
+      <div class="row"><span class="lab">目的</span>把這一場的 生理＋軌跡＋環境 一次送到後端。</div>
+      <div class="row"><span class="lab do">操作</span>HealthProbe 遠端總開關 →「上傳本場資料」→ 顯示「✅ 已上傳本場：生理 N・軌跡 M・環境 K」。<span class="small">生理偏少？充電同步 → 撈取 → 再按一次上傳即可更新（後端同 key 覆蓋）。</span></div>
+    </div>
+    <div class="step"><span class="n">13</span><span class="t">console 抓取，出地圖與 Excel</span>
+      <div class="row"><span class="lab">目的</span>把後端資料抓回來，產生視覺化與報表。</div>
+      <div class="row"><span class="lab do">操作</span>開 <code>…/console.html</code> → 後端專案名填同一個（如 <code>aa</code>）→ 按「從後端抓取」→ 卡片列出每位（編號×場次）→ 地圖畫出路線 → 「產出專案 Excel」下載報表。</div>
+    </div>
+    <div class="step"><span class="n">14</span><span class="t">把地圖變成心率漸層</span>
+      <div class="row"><span class="lab">目的</span>看出路線上哪段心率較高／較低。</div>
+      <div class="row"><span class="lab do">操作</span>console 左側「地圖上色方式」切到「<b>依數值</b>」→ 指標選 <code>heart_rate</code> → 點會依心率冷→暖著色。也可調「時間容差」「GPS 精度上限」「資料點大小」。</div>
+    </div>
+  </div>
+
+  <h2>四、為什麼要「充電同步」？</h2>
+  <div class="note">
+    <p>Apple Watch 量到的健康資料，是<b>有空才同步</b>到 iPhone，不是即時的。<b>放上充電座</b>時手錶會跑背景同步，所以最穩、最快。</p>
+    <p>不充電資料<b>還是會到</b>，只是慢且不固定（幾分鐘～幾十分鐘）。想加快但不充電：手錶戴著、手機放旁邊、兩台短暫亮屏，或打開 iPhone「健康」App——但都沒有充電穩。</p>
+    <p><b>正式研究實務：</b>別要求每位受測者走完馬上充電（不切實際）。改成等自然同步後再上傳；上傳<b>可重按覆蓋</b>，所以先上傳一次、之後資料陸續同步進來再按一次補齊即可。</p>
+  </div>
+
+  <h2>五、欄位設定速查</h2>
+  <table>
+    <tr><th>地方</th><th>欄位</th><th>要點</th></tr>
+    <tr><td>HealthProbe 遠端總開關</td><td>後端網址</td><td>所有裝置相同：<code>https://psycho-physiology.healsdesign.org</code></td></tr>
+    <tr><td>HealthProbe 遠端總開關</td><td>專案名稱</td><td><b>與面板一致</b>（一字不差）</td></tr>
+    <tr><td>HealthProbe 遠端總開關</td><td>本機編號</td><td>每台不同，如 <code>#1</code>、<code>#2</code></td></tr>
+    <tr><td>控制面板</td><td>後端網址</td><td>掛在站上會自動帶；本機開則填上面那個網址</td></tr>
+    <tr><td>控制面板</td><td>專案</td><td>新增後按「開始／停止」</td></tr>
+    <tr><td>console</td><td>後端專案名</td><td>填要檢視的專案（與面板一致）</td></tr>
+  </table>
+
+  <h2>六、常見狀況</h2>
+  <table>
+    <tr><th>狀況</th><th>原因 / 處理</th></tr>
+    <tr><td>上傳後生理筆數很少</td><td>手錶還沒同步完。充電同步 → 撈取 → 再按一次「上傳本場資料」（覆蓋更新）。</td></tr>
+    <tr><td>console 地圖沒畫出來</td><td>該位需<b>同時有「生理」與「軌跡」</b>才畫得出沿路心率。只有環境或只有軌跡不會畫。</td></tr>
+    <tr><td>「立即檢查一次」按了沒變化</td><td>狀態本來就是當前值（如已是「研究中」），屬正常。自動輪詢每 20 秒會自己更新。</td></tr>
+    <tr><td>抓回來是舊資料</td><td>console 已設不讀快取；若仍懷疑，網址列開 <code>…/api/data?project=你的專案&t=任意數</code> 看後端原始內容。</td></tr>
+    <tr><td>心率稀疏、路線著色很空</td><td>走測時忘了開 Apple Watch「戶外步行」運動。下次務必先開運動。</td></tr>
+    <tr><td>定位「永遠允許」沒設到</td><td>設定 → HealthProbe → 位置 → 改成「永遠」（背景記錄需要）。</td></tr>
+  </table>
+
+  <h2>七、資料格式（給接手者參考）</h2>
+  <p class="small">三條流以 ISO8601 時間編碼；console／對接工具皆認得這套 schema。</p>
+  <p><span class="pill">生理 physiology</span> <code>{ hkUUID, metricType, time, value, unit, sourceDevice }</code></p>
+  <p class="small">metricType：heart_rate、resting_heart_rate、respiratory_rate、hrv_sdnn、vo2max、wrist_temp、spo2、audio_exposure_db</p>
+  <p><span class="pill">軌跡 location</span> <code>{ id, time, lat, lng, accuracyM }</code></p>
+  <p><span class="pill">環境 environment</span> <code>{ id, time, snapshot{ airTempC, apparentTempC, humidityPct, usAqi, pm25, pm10, no2, ozone, windSpeedMs, weatherDesc, latitude, longitude, … } }</code></p>
+  <p class="small">後端每個場次存成一筆：<code>{ project, code, session, uploadedAt, counts, physiology[], location[], environment[] }</code>。</p>
+
+  <div class="rule" style="margin-top:34px"></div>
+  <p class="small" style="text-align:center;margin-top:10px">HEALS Design · 場域研究操作手冊　|　一場走測：開始 → 走（手錶開運動）→ 停止 → 充電同步 → 撈取 → 上傳 → 抓取出圖</p>
+
+</div>
+</body>
+</html>
