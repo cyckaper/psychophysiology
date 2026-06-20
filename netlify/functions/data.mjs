@@ -1,7 +1,8 @@
 // netlify/functions/data.mjs
-// HEALS 場域研究 — L3.3 資料端點
-// 角色：HealthProbe 裝置 POST 上傳一場資料（生理／軌跡／環境）；面板 GET 抓取某專案所有資料。
-// 儲存：Netlify Blobs（store: "heals-data"，key = 專案/編號/場次/種類）。
+// HEALS 場域研究 — L3.3 資料端點（v2）
+// v2 重點：一個「場次」只寫一筆 blob（三條流包在一起），避免連續寫多筆時
+//          Netlify Blobs 的 list 只認到最後一筆、前面被漏掉的問題。
+// 儲存：Netlify Blobs（store: "heals-data"，key = 專案/編號/場次）。
 import { getStore } from "@netlify/blobs";
 
 const CORS = {
@@ -10,53 +11,55 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 const reply = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", ...CORS } });
+  new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS },
+  });
 
-const KINDS = ["physiology", "location", "environment"];
-// key 片段清理：去掉斜線/空白等，保留字母數字與 # . - _
-const seg = (s, fallback = "NA") => {
+// key 片段清理：保留字母數字與 # . - _
+const seg = (s, fb = "NA") => {
   const v = String(s ?? "").trim().replace(/[^\w#.-]/g, "_");
-  return v.length ? v : fallback;
+  return v.length ? v : fb;
 };
 
 export default async (req) => {
   if (req.method === "OPTIONS") return new Response("", { status: 204, headers: CORS });
 
-  // 強一致：上傳後面板馬上抓得到
   const store = getStore({ name: "heals-data", consistency: "strong" });
   const url = new URL(req.url);
 
-  // POST /api/data  body: { project, code, session, kind, data: [...] }
+  // POST /api/data
+  // body: { project, code, session, physiology:[...], location:[...], environment:[...] }
   if (req.method === "POST") {
     let body;
     try { body = await req.json(); } catch { return reply({ error: "invalid json" }, 400); }
     const project = seg(body.project, "");
     if (!project) return reply({ error: "project required" }, 400);
-    const kind = seg(body.kind, "");
-    if (!KINDS.includes(kind)) return reply({ error: "kind must be physiology|location|environment" }, 400);
     const code = seg(body.code);
     const session = seg(body.session);
-    const data = Array.isArray(body.data) ? body.data : [];
+    const physiology  = Array.isArray(body.physiology)  ? body.physiology  : [];
+    const location    = Array.isArray(body.location)    ? body.location    : [];
+    const environment = Array.isArray(body.environment) ? body.environment : [];
 
-    const key = `${project}/${code}/${session}/${kind}`;
-    const record = { project, code, session, kind, count: data.length, uploadedAt: Date.now(), data };
-    await store.setJSON(key, record);
-    return reply({ ok: true, key, count: data.length });
+    const key = `${project}/${code}/${session}`;
+    const record = {
+      project, code, session, uploadedAt: Date.now(),
+      counts: { physiology: physiology.length, location: location.length, environment: environment.length },
+      physiology, location, environment,
+    };
+    await store.setJSON(key, record);   // 單一寫入
+    return reply({ ok: true, key, counts: record.counts });
   }
 
-  // GET /api/data?project=X          → 該專案所有上傳（含 data）
-  // GET /api/data?project=X&meta=1   → 只回清單（不含 data，較輕）
+  // GET /api/data?project=X  → 該專案所有場次（每筆含三條流與 counts）
   if (req.method === "GET") {
     const project = seg(url.searchParams.get("project"), "");
     if (!project) return reply({ error: "project required" }, 400);
-    const metaOnly = url.searchParams.get("meta") === "1";
     const { blobs } = await store.list({ prefix: `${project}/` });
     const out = [];
     for (const b of blobs) {
       const v = await store.get(b.key, { type: "json" });
-      if (!v) continue;
-      if (metaOnly) out.push({ project: v.project, code: v.code, session: v.session, kind: v.kind, count: v.count, uploadedAt: v.uploadedAt });
-      else out.push(v);
+      if (v) out.push(v);
     }
     out.sort((a, b) => (b.uploadedAt || 0) - (a.uploadedAt || 0));
     return reply(out);
