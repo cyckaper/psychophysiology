@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEALS 場域研究 · 專案資料主控台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#faf6ea; --paper-2:#f3ecd8; --ink:#33352a; --ink-soft:#6b6f5a;
+    --moss:#5f7048; --moss-deep:#46552f; --clay:#b8694a; --teal:#2f7d72;
+    --line:#e2d9bf; --card:#fffdf6; --card-2:#fffefb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Noto Serif TC",serif;color:var(--ink);
+    background:radial-gradient(1100px 600px at 12% -8%,#fffdf3 0%,rgba(255,253,243,0) 60%),var(--paper);
+    line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 20px 64px}
+  header h1{font-family:"Fraunces",serif;font-weight:600;font-size:27px;color:var(--moss-deep);display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+  header h1 .zh{font-family:"Noto Serif TC",serif;font-weight:700;font-size:22px}
+  header .sub{color:var(--ink-soft);font-size:14.5px;margin-top:6px;max-width:780px}
+  .rule{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:18px 0 20px}
+  .lbl{font-family:"Fraunces",serif;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--clay);margin-bottom:6px}
+
+  .projbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
+  .projbar .fld{flex:1 1 280px}
+  input[type=text]{font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid #cdc4a4;border-radius:9px;padding:9px 12px;width:100%}
+  input[type=text]:focus{outline:none;border-color:var(--moss);box-shadow:0 0 0 3px rgba(95,112,72,.12)}
+
+  .pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .pcard.swatchbar{border-top:4px solid var(--moss)}
+  .pcard .top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .dot{width:14px;height:14px;border-radius:50%;flex:none}
+  .pcard .top input[type=text]{font-size:15px;font-weight:700;padding:6px 10px}
+  .pcard .rm{margin-left:auto;background:none;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}
+  .pcard .rm:hover{background:#f3ece0;color:var(--clay)}
+  .drop{border:1.5px dashed #cbbf9c;border-radius:11px;background:var(--card-2);padding:13px;cursor:pointer;text-align:center;transition:.16s}
+  .drop:hover{border-color:var(--moss);background:#f7f9ef}
+  .drop.over{border-color:var(--moss);background:#f6f7ee;box-shadow:0 0 0 3px rgba(95,112,72,.12) inset}
+  .drop .h{font-weight:700;color:var(--moss-deep);font-size:14px}
+  .drop .s{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .drop input[type=file]{display:none}
+  .pstat{font-size:12.5px;margin-top:9px;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{background:#f1f4e8;border:1px solid #dbe3c8;border-radius:20px;padding:2px 9px;color:var(--moss-deep)}
+  .chip.empty{background:#faf3ea;border-color:#ecdfca;color:var(--ink-soft)}
+  .pvis{font-size:12.5px;color:var(--ink-soft);margin-top:9px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .pvis input{accent-color:var(--moss)}
+
+  .addbtn{margin-top:14px;display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-size:14.5px;font-weight:600;
+    color:var(--moss-deep);background:#fff;border:1px solid #cdc4a4;border-radius:10px;padding:10px 15px;cursor:pointer}
+  .addbtn:hover{background:#f4f6ec;border-color:var(--moss)}
+
+  .panel{margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;display:none}
+  .panel.show{display:block}
+  .ctrls{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end}
+  .ctrls .fld label{display:block;font-size:12px;letter-spacing:.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:500}
+  select{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid #cdc4a4;border-radius:9px;padding:8px 11px;min-width:150px;cursor:pointer}
+  input[type=range]{width:164px;accent-color:var(--moss)}
+  .tv{font-variant-numeric:tabular-nums;font-weight:600;color:var(--moss-deep)}
+  .btn{font-family:inherit;font-size:14px;font-weight:600;color:#fff;background:var(--moss);border:1px solid var(--moss-deep);border-radius:9px;padding:9px 15px;cursor:pointer}
+  .btn:hover{background:var(--moss-deep)}
+  .seg{display:inline-flex;border:1px solid #cdc4a4;border-radius:9px;overflow:hidden}
+  .seg button{font-family:inherit;font-size:13.5px;color:var(--ink-soft);background:#fff;border:none;padding:8px 13px;cursor:pointer}
+  .seg button.on{background:var(--moss);color:#fff}
+
+  #map{height:min(70vh,680px);margin-top:16px;border-radius:14px;border:1px solid var(--line);display:none}
+  #map.show{display:block}
+  .legend{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 12px;font-size:12.5px;color:var(--ink);box-shadow:0 1px 5px rgba(70,60,30,.08);line-height:1.5;max-width:220px}
+  .legend .lt{font-family:"Fraunces",serif;font-weight:600;color:var(--moss-deep);margin-bottom:6px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:7px;margin:3px 0}
+  .legend .sw{width:13px;height:13px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.12)}
+  .legend .bar{height:11px;width:170px;border-radius:6px;border:1px solid rgba(0,0,0,.08)}
+  .legend .ends{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;color:var(--ink-soft);margin-top:3px}
+
+  .stats{display:none;margin-top:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+  .stats.show{display:grid}
+  .sc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .sc .k{font-size:11.5px;letter-spacing:.5px;color:var(--ink-soft);text-transform:uppercase;font-family:"Fraunces",serif}
+  .sc .v{font-size:20px;font-weight:700;color:var(--moss-deep);margin-top:3px;font-variant-numeric:tabular-nums}
+  .sc .v small{font-size:12.5px;font-weight:500;color:var(--ink-soft)}
+  .note{margin-top:14px;font-size:12.5px;color:var(--ink-soft);background:#fbf7ec;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:9px 13px}
+  .leaflet-popup-content{font-family:"Noto Serif TC",serif;font-size:13px;line-height:1.55}
+  .leaflet-popup-content b{color:var(--moss-deep)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span>HEALS</span><span class="zh">場域研究 · 專案資料主控台</span></h1>
+    <p class="sub">一個專案、多位參與者(各一編號＝一組配對的 Apple Watch + iPhone)。每位拖入自己的 生理／軌跡／環境 JSON,系統依時間對接出帶 GPS 的資料,產出一份專案 Excel(每人一分頁)並把全員資料疊在地圖上。資料僅在本機處理。</p>
+  </header>
+  <div class="rule"></div>
+
+  <div class="projbar">
+    <div class="fld"><div class="lbl">專案名稱</div><input type="text" id="projName" placeholder="例如：大安森林公園療癒走測 A 場"></div>
+    <button class="btn" id="btnExport">產出專案 Excel</button>
+  </div>
+
+  <div class="projbar" style="margin-top:6px">
+    <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
+    <div class="fld"><div class="lbl">後端專案名（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
+    <button class="btn" id="btnFetch">從後端抓取</button>
+  </div>
+  <div class="note" id="feNote" style="display:none"></div>
+
+  <div class="lbl">參與者（編號）</div>
+  <div class="pcards" id="pcards"></div>
+  <button class="addbtn" id="btnAdd"><span style="font-size:17px;line-height:0">＋</span> 新增參與者</button>
+
+  <div class="panel" id="panel">
+    <div class="ctrls">
+      <div class="fld">
+        <label>地圖上色方式</label>
+        <div class="seg" id="segMode">
+          <button data-mode="participant" class="on">依編號</button>
+          <button data-mode="value">依數值</button>
+        </div>
+      </div>
+      <div class="fld" id="fldMetric" style="display:none">
+        <label>數值指標</label>
+        <select id="selMetric"></select>
+      </div>
+      <div class="fld">
+        <label>時間容差　<span class="tv" id="tolLbl">90 秒</span></label>
+        <input type="range" id="tol" min="10" max="600" step="10" value="90">
+      </div>
+      <div class="fld">
+        <label>GPS 精度上限　<span class="tv" id="accLbl">50 m</span></label>
+        <input type="range" id="acc" min="10" max="200" step="5" value="50">
+      </div>
+      <div class="fld">
+        <label>資料點大小　<span class="tv" id="sizeLbl">4</span></label>
+        <input type="range" id="size" min="2" max="9" step="1" value="4">
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <div class="stats" id="stats"></div>
+  <div class="note" id="note" style="display:none"></div>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const PALETTE=["#5f7048","#b8694a","#2f7d72","#9a7b2e","#7a5c8e","#476a8c","#a14e5e","#647a23","#8c5a2e","#3e7a6a"];
+let participants=[]; let seq=0;
+let map=null, layers={};
+
+/* ---- 時間解析:ISO 字串優先,數值自動辨識 ---- */
+function parseTime(v){
+  if(typeof v==="string"){const t=Date.parse(v);return isNaN(t)?null:t;}
+  if(typeof v==="number"){if(v>1e12)return v;if(v>1.2e9)return v*1000;return (v+978307200)*1000;}
+  return null;
+}
+const fmtLocal=ms=>new Date(ms).toLocaleString("sv-SE",{timeZone:"Asia/Taipei"});
+const round=(x,n)=>(x==null||!isFinite(x))?"":Math.round(x*10**n)/10**n;
+
+function hueFor(m){const s=String(m||"").toLowerCase();
+  if(/rest/.test(s))return 14; if(/heart|心率|bpm/.test(s))return 6;
+  if(/hrv|sdnn|variab/.test(s))return 150; if(/respir|breath|呼吸/.test(s))return 205;
+  if(/spo2|oxygen|血氧|氧|saturation/.test(s))return 185; if(/vo2/.test(s))return 32;
+  if(/temp|溫度|wrist/.test(s))return 24; if(/audio|sound|noise|音量|分貝/.test(s))return 92; return 140;}
+function valColor(v,lo,hi,hue){const n=hi>lo?(v-lo)/(hi-lo):.5;return `hsl(${hue} ${42+n*22}% ${80-n*48}%)`;}
+
+function nearestIdx(T,t){let lo=0,hi=T.length-1;while(lo<hi){const m=(lo+hi)>>1;if(T[m]<t)lo=m+1;else hi=m;}
+  let b=lo;if(lo>0&&Math.abs(T[lo-1]-t)<=Math.abs(T[lo]-t))b=lo-1;return b;}
+
+/* ---- 單一參與者對接:生理→最近時間軌跡點(精度過濾) + 最近環境快照 ---- */
+function joinParticipant(p,tolSec,maxAccM){
+  const tp=p.track.map(x=>({t:parseTime(x.time),lat:+x.lat,lng:+(x.lng??x.lon),acc:+x.accuracyM}))
+    .filter(x=>x.t!=null&&isFinite(x.lat)&&isFinite(x.lng)&&(!isFinite(x.acc)||x.acc<=maxAccM)).sort((a,b)=>a.t-b.t);
+  const T=tp.map(x=>x.t);
+  const ev=p.env.map(e=>({t:parseTime(e.time),s:e.snapshot||{}})).filter(e=>e.t!=null).sort((a,b)=>a.t-b.t);
+  const ET=ev.map(e=>e.t);
+  const rows=[];
+  for(const s of p.phys){
+    const st=parseTime(s.time); if(st==null||!T.length)continue;
+    const i=nearestIdx(T,st); const dt=Math.abs(T[i]-st)/1000;
+    if(dt>tolSec)continue;
+    const r={lat:tp[i].lat,lng:tp[i].lng,acc:tp[i].acc,dtSec:Math.round(dt),
+             metricType:s.metricType,value:+s.value,unit:s.unit,time:st,sourceDevice:s.sourceDevice,env:null};
+    if(ET.length){const j=nearestIdx(ET,st);if(Math.abs(ET[j]-st)/1000<=900)r.env=ev[j].s;}
+    rows.push(r);
+  }
+  return {rows,track:tp};
+}
+
+/* ---- 檔案分類 ---- */
+function classify(arr){
+  if(!Array.isArray(arr))arr=(arr&&arr.samples)||(arr&&arr.points)||null;
+  if(!Array.isArray(arr)||!arr.length)return null;
+  const s=arr[0];
+  if("metricType" in s)return ["phys",arr];
+  if("snapshot" in s)return ["env",arr];
+  if(("lat" in s)&&(("lng" in s)||("lon" in s)))return ["track",arr];
+  return null;
+}
+function readJSON(file,cb){const r=new FileReader();r.onload=()=>{try{cb(JSON.parse(r.result));}catch(e){alert("「"+file.name+"」不是有效的 JSON（可能是圖片或非匯出檔）。");}};r.readAsText(file);}
+
+/* ---- 從後端抓取(/api/data) ---- */
+function shortSession(s){s=String(s||"");return s.length>8?"…"+s.slice(-6):s;}
+function clearParticipants(){participants=[];seq=0;$("#pcards").innerHTML="";}
+async function fetchFromBackend(){
+  const b=$("#beBase").value.trim().replace(/\/+$/,"");
+  const proj=$("#beProj").value.trim();
+  const note=$("#feNote");
+  if(!b||!proj){alert("請填後端網址與後端專案名。");return;}
+  note.style.display="block";note.textContent="抓取中…";
+  let arr;
+  try{
+    const r=await fetch(b+"/api/data?project="+encodeURIComponent(proj));
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    arr=await r.json();
+  }catch(e){note.textContent="抓取失敗："+e.message;return;}
+  if(!Array.isArray(arr)||!arr.length){note.textContent="後端目前沒有「"+proj+"」的資料(尚未有裝置上傳)。";return;}
+  // 依 (編號 code × 場次 session) 分組,每組一位參與者
+  const groups={};
+  arr.forEach(rec=>{
+    const key=(rec.code||"NA")+"||"+(rec.session||"NA");
+    const g=groups[key]||(groups[key]={code:rec.code||"NA",session:rec.session||"NA",uploadedAt:0,phys:[],track:[],env:[]});
+    g.uploadedAt=Math.max(g.uploadedAt,rec.uploadedAt||0);
+    const d=Array.isArray(rec.data)?rec.data:[];
+    if(rec.kind==="physiology")g.phys=d; else if(rec.kind==="location")g.track=d; else if(rec.kind==="environment")g.env=d;
+  });
+  const list=Object.values(groups).filter(g=>g.phys.length||g.track.length||g.env.length).sort((a,b)=>b.uploadedAt-a.uploadedAt);
+  if(!list.length){note.textContent="後端有「"+proj+"」但都是空的場次。";return;}
+  clearParticipants();
+  list.forEach(g=>addParticipant({label:g.code+"·"+shortSession(g.session),phys:g.phys,track:g.track,env:g.env}));
+  if(!$("#projName").value.trim())$("#projName").value=proj;
+  refresh();
+  const sessCount=new Set(list.map(g=>g.session)).size;
+  note.textContent="已從後端載入 "+list.length+" 組(編號×場次)、共 "+sessCount+" 個場次。可直接看地圖／產出 Excel;也可在任一卡片拖檔覆蓋。";
+}
+
+/* ---- 參與者卡片 ---- */
+function addParticipant(preset){
+  const uid="p"+(++seq);
+  const p={uid,label:(preset&&preset.label)||("#"+seq),phys:(preset&&preset.phys)||[],track:(preset&&preset.track)||[],env:(preset&&preset.env)||[],color:PALETTE[(seq-1)%PALETTE.length],visible:true};
+  participants.push(p);
+  const card=document.createElement("div");card.className="pcard swatchbar";card.style.borderTopColor=p.color;
+  card.innerHTML=`
+    <div class="top">
+      <span class="dot" style="background:${p.color}"></span>
+      <input type="text" value="${p.label}" data-role="label">
+      <button class="rm" title="移除">✕</button>
+    </div>
+    <label class="drop" data-role="drop">
+      <div class="h">拖入此參與者的 JSON</div>
+      <div class="s">生理 ／ 軌跡 ／ 環境（可多檔，自動辨識）</div>
+      <input type="file" accept=".json,application/json" multiple>
+    </label>
+    <div class="pstat" data-role="stat"></div>
+    <label class="pvis"><input type="checkbox" data-role="vis" checked> 在地圖顯示</label>`;
+  $("#pcards").appendChild(card);
+
+  const labelEl=card.querySelector('[data-role=label]');
+  labelEl.addEventListener("input",e=>{p.label=e.target.value||("#"+seq);});
+  card.querySelector(".rm").addEventListener("click",()=>{
+    participants=participants.filter(x=>x.uid!==uid);card.remove();refresh();
+  });
+  card.querySelector('[data-role=vis]').addEventListener("change",e=>{p.visible=e.target.checked;renderMap();});
+  const drop=card.querySelector('[data-role=drop]'), input=drop.querySelector("input"), stat=card.querySelector('[data-role=stat]');
+  const onFiles=files=>{[...files].forEach(f=>{
+    if(!/\.json$/i.test(f.name)&&f.type!=="application/json"){
+      alert("「"+f.name+"」不是 JSON 檔（看起來是圖片或其他格式）。\n請拖入 HealthProbe 匯出的 .json（生理／軌跡／環境）。");return;
+    }
+    readJSON(f,arr=>{
+      const c=classify(arr);
+      if(!c){alert("「"+f.name+"」無法辨識：找不到 metricType／lat,lng／snapshot 欄位。");return;}
+      if(c[0]==="phys")p.phys=c[1]; else if(c[0]==="track")p.track=c[1]; else if(c[0]==="env")p.env=c[1];
+      updateStat(p,stat);refresh();
+    });
+  });};
+  input.addEventListener("change",e=>onFiles(e.target.files));
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop",e=>onFiles(e.dataTransfer.files));
+  updateStat(p,stat);
+}
+function updateStat(p,el){
+  const chip=(n,lbl)=>`<span class="chip${n?'':' empty'}">${lbl} ${n?n.toLocaleString():'—'}</span>`;
+  el.innerHTML=chip(p.phys.length,"生理")+chip(p.track.length,"軌跡")+chip(p.env.length,"環境");
+}
+
+/* ---- 指標清單(跨參與者聯集) ---- */
+function refreshMetrics(){
+  const set=new Set();participants.forEach(p=>p.phys.forEach(s=>set.add(s.metricType)));
+  const sel=$("#selMetric"),prev=sel.value,arr=[...set].sort();
+  sel.innerHTML=arr.map(m=>`<option value="${m}">${m}</option>`).join("");
+  if(arr.includes(prev))sel.value=prev;
+}
+
+/* ---- 地圖 ---- */
+function renderMap(){
+  const ready=participants.some(p=>p.phys.length&&p.track.length);
+  if(!ready)return;
+  if(!map){
+    map=L.map("map",{zoomControl:true});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);
+  }
+  Object.values(layers).forEach(l=>map.removeLayer(l));layers={};
+  const tol=+$("#tol").value, acc=+$("#acc").value, mode=window._mode||"participant", metric=$("#selMetric").value, psize=+$("#size").value;
+  const allPts=[]; let vmin=Infinity,vmax=-Infinity;
+  const joins=participants.map(p=>{
+    if(!p.visible||!p.phys.length||!p.track.length)return null;
+    const j=joinParticipant(p,tol,acc);
+    if(mode==="value")j.rows.filter(r=>r.metricType===metric).forEach(r=>{if(r.value<vmin)vmin=r.value;if(r.value>vmax)vmax=r.value;});
+    return {p,...j};
+  });
+  joins.forEach(o=>{if(!o)return;const {p,rows,track}=o;const lg=L.layerGroup();
+    if(track.length>1)L.polyline(track.map(x=>[x.lat,x.lng]),{color:p.color,weight:2,opacity:.45}).addTo(lg);
+    const show=mode==="value"?rows.filter(r=>r.metricType===metric):rows;
+    let pts=show; if(pts.length>5000){const st=Math.ceil(pts.length/5000);pts=pts.filter((_,i)=>i%st===0);}
+    pts.forEach(r=>{
+      const col=mode==="value"?valColor(r.value,vmin,vmax,hueFor(metric)):p.color;
+      L.circleMarker([r.lat,r.lng],{radius:psize,fillColor:col,color:"#5a5230",weight:.4,opacity:.6,fillOpacity:.82})
+        .bindPopup(`<b>${p.label}</b><br>${r.metricType} <b>${r.value}</b> ${r.unit||""}<br>時間 ${fmtLocal(r.time)}<br>Δt ${r.dtSec} 秒`).addTo(lg);
+      allPts.push([r.lat,r.lng]);
+    });
+    lg.addTo(map);layers[p.uid]=lg;
+  });
+  if(allPts.length)map.fitBounds(L.latLngBounds(allPts).pad(.15));
+  setTimeout(()=>map.invalidateSize(),50);
+  const mc={}; joins.forEach(o=>{if(o)o.rows.forEach(r=>mc[r.metricType]=(mc[r.metricType]||0)+1);});
+  [...$("#selMetric").options].forEach(opt=>{opt.textContent=`${opt.value}（${mc[opt.value]||0}）`;});
+  renderLegend(mode,metric,vmin,vmax);
+  renderStats(tol,acc);
+  if(mode==="value"&&!(mc[metric]>0)){
+    const n=$("#note");n.style.display="block";
+    n.textContent=`「${metric}」在對接窗內 0 筆：這段走測期間手錶沒有取樣這個指標。動態走測時手錶只密集量 heart_rate，HRV／血氧／呼吸等多在靜止或睡眠才量。改選 heart_rate 即可看到沿路漸層。`;
+  }
+}
+let legendCtl=null;
+function renderLegend(mode,metric,vmin,vmax){
+  if(legendCtl)map.removeControl(legendCtl);
+  legendCtl=L.control({position:"bottomright"});
+  legendCtl.onAdd=()=>{const d=L.DomUtil.create("div","legend");
+    if(mode==="value"){
+      const hue=hueFor(metric);
+      d.innerHTML=`<div class="lt">${metric}</div>
+        <div class="bar" style="background:linear-gradient(90deg,${valColor(vmin,vmin,vmax,hue)},${valColor(vmax,vmin,vmax,hue)})"></div>
+        <div class="ends"><span>${isFinite(vmin)?round(vmin,0):"—"}</span><span>${isFinite(vmax)?round(vmax,0):"—"}</span></div>`;
+    }else{
+      d.innerHTML=`<div class="lt">參與者</div>`+participants.filter(p=>p.visible&&p.phys.length&&p.track.length)
+        .map(p=>`<div class="row"><span class="sw" style="background:${p.color}"></span>${p.label}</div>`).join("");
+    }
+    return d;};
+  legendCtl.addTo(map);
+}
+function renderStats(tol,acc){
+  let totalPhys=0,totalTrack=0,totalJoined=0,active=0;const allT=[];
+  participants.forEach(p=>{if(!p.phys.length||!p.track.length)return;active++;totalPhys+=p.phys.length;totalTrack+=p.track.length;
+    const {rows}=joinParticipant(p,tol,acc);totalJoined+=rows.length;rows.forEach(r=>allT.push(r.time));});
+  const cards=[
+    ["參與者(有資料)",active.toLocaleString(),""],
+    ["生理樣本合計",totalPhys.toLocaleString(),""],
+    ["軌跡點合計",totalTrack.toLocaleString(),""],
+    ["對接到 GPS",totalJoined.toLocaleString(),"筆"],
+    ["資料時間",allT.length?fmtLocal(Math.min(...allT)).slice(5,16):"—",allT.length?"→ "+fmtLocal(Math.max(...allT)).slice(5,16):""],
+  ];
+  $("#stats").innerHTML=cards.map(([k,v,s])=>`<div class="sc"><div class="k">${k}</div><div class="v">${v} <small>${s}</small></div></div>`).join("");
+  $("#stats").classList.add("show");
+  const n=$("#note");
+  if(totalJoined===0){n.style.display="block";n.textContent="目前對接到 0 筆。請確認每位參與者的生理與軌跡時段重疊,或把時間容差調大、GPS 精度上限放寬。";}
+  else{n.style.display="block";n.textContent="只有成功對接到 GPS 座標的生理樣本會進地圖與 Excel;落在容差外或精度不足者已排除。環境欄取最近 15 分鐘內的快照。";}
+}
+
+/* ---- 產出 Excel ---- */
+function exportExcel(){
+  if(typeof XLSX==="undefined"){alert("Excel 函式庫尚未載入,請稍候再試。");return;}
+  const tol=+$("#tol").value, acc=+$("#acc").value;
+  const wb=XLSX.utils.book_new(); const summary=[]; const used=new Set();
+  participants.forEach(p=>{
+    if(!p.phys.length||!p.track.length)return;
+    const {rows}=joinParticipant(p,tol,acc);
+    const data=rows.map(r=>({
+      "編號":p.label,"時間(台北)":fmtLocal(r.time),"指標":r.metricType,"數值":r.value,"單位":r.unit||"",
+      "lat":r.lat,"lng":r.lng,"精度m":round(r.acc,1),"Δt秒":r.dtSec,"來源":r.sourceDevice||"",
+      "氣溫C":r.env?r.env.airTempC:"","體感C":r.env?r.env.apparentTempC:"","濕度%":r.env?r.env.humidityPct:"",
+      "AQI":r.env?r.env.usAqi:"","PM2.5":r.env?r.env.pm25:"","PM10":r.env?r.env.pm10:"",
+      "風速ms":r.env?r.env.windSpeedMs:"","天氣":r.env?r.env.weatherDesc:""
+    }));
+    let nm=(p.label||"裝置").replace(/[\[\]\*\?\/\\:]/g,"_").slice(0,28)||"裝置";
+    let base=nm,k=2;while(used.has(nm)){nm=(base.slice(0,26)+"_"+k);k++;}used.add(nm);
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.length?data:[{"編號":p.label,"說明":"此參與者無對接到 GPS 的樣本"}]),nm);
+    const hr=rows.filter(r=>r.metricType==="heart_rate").map(r=>r.value);
+    const ts=rows.map(r=>r.time);
+    summary.push({"編號":p.label,"生理(GPS對接)":rows.length,"軌跡點":p.track.length,
+      "心率範圍bpm":hr.length?Math.min(...hr)+"–"+Math.max(...hr):"—",
+      "場次起(台北)":ts.length?fmtLocal(Math.min(...ts)):"—","場次迄(台北)":ts.length?fmtLocal(Math.max(...ts)):"—"});
+  });
+  if(!summary.length){alert("尚無可輸出的資料:每位參與者需同時有「生理」與「軌跡」。");return;}
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"總覽");
+  wb.SheetNames.unshift(wb.SheetNames.pop());
+  const name=($("#projName").value||"專案").replace(/[^\w\u4e00-\u9fa5-]/g,"_").slice(0,40);
+  const ts=new Date().toISOString().replace(/[-:T]/g,"").slice(0,15);
+  XLSX.writeFile(wb,`HEALS-${name}-${ts}.xlsx`);
+}
+
+/* ---- 全域刷新 ---- */
+function refresh(){
+  const ready=participants.some(p=>p.phys.length&&p.track.length);
+  $("#panel").classList.toggle("show",ready);
+  $("#map").classList.toggle("show",ready);
+  refreshMetrics();
+  if(ready)renderMap(); else {$("#stats").classList.remove("show");$("#note").style.display="none";}
+}
+
+/* ---- 綁定 ---- */
+$("#btnAdd").addEventListener("click",()=>addParticipant());
+$("#btnFetch").addEventListener("click",fetchFromBackend);
+$("#btnExport").addEventListener("click",exportExcel);
+$("#tol").addEventListener("input",e=>{$("#tolLbl").textContent=e.target.value+" 秒";renderMap();});
+$("#acc").addEventListener("input",e=>{$("#accLbl").textContent=e.target.value+" m";renderMap();});
+$("#size").addEventListener("input",e=>{$("#sizeLbl").textContent=e.target.value;renderMap();});
+$("#selMetric").addEventListener("change",renderMap);
+window._mode="participant";
+$("#segMode").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  window._mode=b.dataset.mode;
+  $("#segMode").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+  $("#fldMetric").style.display=window._mode==="value"?"":"none";
+  renderMap();
+}));
+addParticipant(); addParticipant();
+</script>
+</body>
+</html>
