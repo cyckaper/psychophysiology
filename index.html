@@ -3,141 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEALS 場域研究 · 總開關面板</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<title>景觀生心理研究 · Psycho-Physiology Study</title>
 <style>
-  :root{--paper:#faf6ea;--ink:#33352a;--ink-soft:#6b6f5a;--moss:#5f7048;--moss-deep:#46552f;--clay:#b8694a;--teal:#2f7d72;--line:#e2d9bf;--card:#fffdf6;}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:"Noto Serif TC",serif;color:var(--ink);background:radial-gradient(1100px 600px at 12% -8%,#fffdf3 0%,rgba(255,253,243,0) 60%),var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:760px;margin:0 auto;padding:26px 20px 60px}
-  header h1{font-family:"Fraunces",serif;font-weight:600;font-size:26px;color:var(--moss-deep);display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
-  header h1 .zh{font-family:"Noto Serif TC",serif;font-weight:700;font-size:21px}
-  header .sub{color:var(--ink-soft);font-size:14px;margin-top:6px}
-  .rule{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:18px 0 20px}
-  .lbl{font-family:"Fraunces",serif;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--clay);margin-bottom:6px}
-  input[type=text]{font-family:inherit;font-size:15px;color:var(--ink);background:#fff;border:1px solid #cdc4a4;border-radius:9px;padding:9px 12px;width:100%}
-  input[type=text]:focus{outline:none;border-color:var(--moss);box-shadow:0 0 0 3px rgba(95,112,72,.12)}
-  .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
-  .row .fld{flex:1 1 220px}
-  .btn{font-family:inherit;font-size:14px;font-weight:600;color:#fff;background:var(--moss);border:1px solid var(--moss-deep);border-radius:9px;padding:9px 15px;cursor:pointer;white-space:nowrap}
-  .btn:hover{background:var(--moss-deep)}
-  .btn.ghost{background:#fff;color:var(--moss-deep)}
-  .btn.ghost:hover{background:#f4f6ec}
-  .conn{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-top:8px}
-  .dot{width:9px;height:9px;border-radius:50%;background:#c9c2ac}
-  .dot.ok{background:#5f9a52}.dot.bad{background:#c2683f}
-
-  .plist{margin-top:22px;display:flex;flex-direction:column;gap:11px}
-  .pitem{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 15px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .pitem.running{border-color:#bccaa0;background:#f7f9ef}
-  .pitem .nm{font-weight:700;font-size:16px;color:var(--moss-deep);flex:1 1 160px}
-  .badge{font-size:12.5px;font-weight:600;padding:3px 11px;border-radius:20px;white-space:nowrap}
-  .badge.run{background:#e7f1df;color:#3c6a2c;border:1px solid #c5d8a8}
-  .badge.stop{background:#f1ece0;color:#6b6f5a;border:1px solid #ddd3bd}
-  .badge.idle{background:#faf3ea;color:#9a8e72;border:1px solid #ecdfca}
-  .pitem .meta{font-size:12px;color:var(--ink-soft);flex:1 1 100%;font-variant-numeric:tabular-nums}
-  .pitem .acts{display:flex;gap:8px}
-  .acts .start{background:var(--teal);border-color:#236157}
-  .acts .start:hover{background:#236157}
-  .acts .stop{background:#fff;color:var(--clay);border-color:#d8b3a6}
-  .acts .stop:hover{background:#fbf1ec}
-  .empty{color:var(--ink-soft);font-size:13.5px;padding:18px;text-align:center;border:1px dashed #d6cdb4;border-radius:12px}
-  .note{margin-top:18px;font-size:12.5px;color:var(--ink-soft);background:#fbf7ec;border-left:3px solid var(--clay);border-radius:0 8px 8px 0;padding:9px 13px}
+  :root{
+    --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
+    --moss:#5b7a45; --moss-deep:#3f5a2f; --teal:#2c6b5f; --clay:#b8694a;
+    --ink:#33301f; --soft:#6b6750;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:
+      radial-gradient(1200px 500px at 50% -10%, #fff8e8 0%, var(--cream) 60%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;
+    line-height:1.65;display:flex;align-items:center;justify-content:center;}
+  .wrap{max-width:560px;width:100%;padding:40px 20px 56px;}
+  .brand{font-family:"Noto Serif TC",Georgia,serif;font-size:13px;letter-spacing:3px;
+    color:var(--teal);text-transform:uppercase;margin:0 0 4px;}
+  h1{font-family:"Noto Serif TC",Georgia,serif;font-size:27px;color:var(--moss-deep);
+    margin:0 0 6px;letter-spacing:1px;}
+  .sub{color:var(--soft);font-size:14.5px;margin:0 0 6px;}
+  .en{font-family:"Noto Serif TC",Georgia,serif;font-style:italic;font-size:14.5px;
+    letter-spacing:1.5px;color:var(--teal);margin:0 0 8px;}
+  .flow{color:var(--soft);font-size:12.5px;margin:0 0 26px;}
+  .flow b{color:var(--moss);}
+  a.card{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;margin:12px 0;transition:transform .12s ease, box-shadow .12s ease, border-color .12s;}
+  a.card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(63,90,47,.10);border-color:#d6cbae;}
+  .ico{flex:none;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center;font-size:22px;background:#eef3e8;border:1px solid #d9e6cc;}
+  .c-panel .ico{background:#e7f1ec;border-color:#c7e0d6;}
+  .c-console .ico{background:#eef3e8;border-color:#d9e6cc;}
+  .c-guide .ico{background:#fbf0e9;border-color:#ecd2c4;}
+  .ct{flex:1;min-width:0;}
+  .ct .t{font-family:"Noto Serif TC",serif;font-size:17.5px;font-weight:600;color:var(--moss-deep);}
+  .ct .d{font-size:13px;color:var(--soft);margin-top:1px;}
+  .arr{flex:none;color:#b9b29a;font-size:20px;}
+  .foot{margin-top:24px;text-align:center;color:var(--soft);font-size:12px;}
+  .foot .dot{height:3px;width:54px;margin:0 auto 12px;border-radius:3px;
+    background:linear-gradient(90deg,var(--moss),var(--teal));}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1><span>HEALS</span><span class="zh">場域研究 · 總開關面板</span></h1>
-    <p class="sub">每個專案一個開關。按「開始」＝研究開始：後端記下指令,各裝置輪詢到後就自動 清空軌跡＋開軌跡＋開環境流並上傳。此面板只負責下指令與看狀態。</p>
-  </header>
-  <div class="rule"></div>
+  <p class="brand">HEALS Design</p>
+  <h1>景觀生心理研究</h1>
+  <p class="en">Psycho-Physiology Study</p>
+  <p class="sub">遠端遙控 · 連續收集 · 心率路線圖</p>
+  <p class="flow"><b>面板開始</b> → 手機自動記錄 → 走測 → <b>面板停止</b> → 手機上傳 → <b>主控台出圖</b></p>
 
-  <div class="lbl">後端網址（Netlify 站台）</div>
-  <div class="row">
-    <div class="fld"><input type="text" id="base" placeholder="https://你的站台.netlify.app"></div>
-    <button class="btn ghost" id="btnConn">連線測試</button>
+  <a class="card c-panel" href="panel.html">
+    <div class="ico">🎛️</div>
+    <div class="ct"><div class="t">控制面板</div><div class="d">開始／停止研究、看各專案狀態</div></div>
+    <div class="arr">›</div>
+  </a>
+
+  <a class="card c-console" href="console.html">
+    <div class="ico">🗺️</div>
+    <div class="ct"><div class="t">資料主控台</div><div class="d">抓取資料、出地圖與專案 Excel</div></div>
+    <div class="arr">›</div>
+  </a>
+
+  <a class="card c-guide" href="guide.html">
+    <div class="ico">📖</div>
+    <div class="ct"><div class="t">操作手冊</div><div class="d">從頭到尾的步驟說明（含每步目的與操作）</div></div>
+    <div class="arr">›</div>
+  </a>
+
+  <div class="foot">
+    <div class="dot"></div>
+    一場走測：開始 → 走（手錶開「戶外步行」）→ 停止 → 充電同步 → 撈取 → 上傳 → 抓取出圖
   </div>
-  <div class="conn"><span class="dot" id="connDot"></span><span id="connTxt">尚未連線</span></div>
-
-  <div class="lbl" style="margin-top:24px">新增專案</div>
-  <div class="row">
-    <div class="fld"><input type="text" id="newProj" placeholder="例如：大安森林療癒走測 A 場"></div>
-    <button class="btn" id="btnAdd">＋ 加入</button>
-  </div>
-
-  <div class="plist" id="plist"></div>
-
-  <div class="note">同一專案的多支配對裝置(各一編號)會在 L3.2 加進來:裝置端填同一個專案名＋自己的編號＋此後端網址,即可一起聽這個開關。目前先驗「面板 → 後端」這半邊。</div>
 </div>
-
-<script>
-"use strict";
-const $=s=>document.querySelector(s);
-let base=""; let local=new Set(); let states={}; let timer=null;
-const api=()=>base.replace(/\/+$/,"")+"/api/command";
-
-function setConn(state,msg){const d=$("#connDot");d.className="dot"+(state==="ok"?" ok":state==="bad"?" bad":"");$("#connTxt").textContent=msg;}
-
-async function poll(){
-  if(!base)return;
-  try{
-    const r=await fetch(api(),{method:"GET"});
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    const arr=await r.json();
-    states={}; arr.forEach(s=>{states[s.project]=s; local.add(s.project);});
-    setConn("ok","已連線　"+new Date().toLocaleTimeString("zh-TW"));
-    render();
-  }catch(e){setConn("bad","連線失敗："+e.message);}
-}
-async function post(project,action){
-  if(!base){alert("請先填後端網址。");return;}
-  try{
-    const r=await fetch(api(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project,action})});
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    const s=await r.json(); states[s.project]=s; render(); poll();
-  }catch(e){alert("操作失敗："+e.message);}
-}
-
-function fmt(ms){return ms?new Date(ms).toLocaleString("zh-TW",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—";}
-function render(){
-  const names=[...local].sort();
-  const box=$("#plist");
-  if(!names.length){box.innerHTML='<div class="empty">尚無專案。上方加入一個專案,再按「開始」。</div>';return;}
-  box.innerHTML=names.map(nm=>{
-    const s=states[nm]; const running=s&&s.status==="running";
-    const badge=!s?'<span class="badge idle">未啟動</span>':running?'<span class="badge run">研究中</span>':'<span class="badge stop">已停止</span>';
-    const meta=s?`開始 ${fmt(s.startedAt)}${s.status==="stopped"?`　·　停止 ${fmt(s.stoppedAt)}`:""}`:"尚未送出開始指令";
-    return `<div class="pitem ${running?'running':''}">
-      <span class="nm">${nm}</span>${badge}
-      <span class="acts">
-        <button class="btn start" data-act="start" data-p="${encodeURIComponent(nm)}" ${running?'disabled style=\"opacity:.45\"':''}>開始</button>
-        <button class="btn stop" data-act="stop" data-p="${encodeURIComponent(nm)}" ${running?'':'disabled style=\"opacity:.45\"'}>停止</button>
-      </span>
-      <span class="meta">${meta}</span>
-    </div>`;
-  }).join("");
-  box.querySelectorAll("button[data-act]").forEach(b=>b.addEventListener("click",()=>post(decodeURIComponent(b.dataset.p),b.dataset.act)));
-}
-
-function connect(){
-  base=$("#base").value.trim();
-  if(!base){setConn("bad","請先填後端網址");return;}
-  if(timer)clearInterval(timer);
-  poll(); timer=setInterval(poll,5000);
-}
-$("#btnConn").addEventListener("click",connect);
-$("#base").addEventListener("keydown",e=>{if(e.key==="Enter")connect();});
-$("#btnAdd").addEventListener("click",()=>{
-  const v=$("#newProj").value.trim(); if(!v)return;
-  local.add(v); $("#newProj").value=""; render();
-});
-$("#newProj").addEventListener("keydown",e=>{if(e.key==="Enter")$("#btnAdd").click();});
-// 若此面板是放在 Netlify 站台上(非本機檔案),自動用自己的網址當後端、自動連線
-if(location.protocol!=="file:"){ $("#base").value=location.origin; connect(); }
-render();
-</script>
 </body>
 </html>
