@@ -15,7 +15,9 @@ const reply = (obj, status = 200) =>
 export default async (req) => {
   if (req.method === "OPTIONS") return new Response("", { status: 204, headers: CORS });
 
-  const store = getStore("heals-commands");
+  // 強一致讀取：確保 POST 寫入後，緊接著的 GET 一定讀到最新值
+  // （否則最終一致下，面板按「停止」會被尚未更新的輪詢蓋回「研究中」，要按兩次）
+  const store = getStore({ name: "heals-commands", consistency: "strong" });
   const url = new URL(req.url);
 
   // GET /api/command            → 列出所有專案狀態（面板用）
