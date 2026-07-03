@@ -103,6 +103,15 @@
   </div>
 
   <div class="projbar" style="margin-top:6px">
+    <div class="fld"><div class="lbl">HEALS 專案鏈（讀人 02）</div>
+      <div id="hcStatus" style="font-size:12.5px;color:#6b6750;padding:6px 0;line-height:1.6">【從哪裡來】讀地（01）匯出的專案檔。先匿入以承接基地範圍，走測資料對接後再匹出 02-physio。</div>
+    </div>
+    <input type="file" id="hcFileInput" accept=".json,application/json" style="display:none">
+    <button class="btn" id="btnHcImport">匿入專案檔（讀地 01）</button>
+    <button class="btn" id="btnHcExport">⛓ 匯出 heals-chain（02-physio）</button>
+  </div>
+
+  <div class="projbar" style="margin-top:6px">
     <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
     <div class="fld"><div class="lbl">後端專案名（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
     <button class="btn" id="btnFetch">從後端抓取</button>
@@ -416,6 +425,70 @@ function refresh(){
 $("#btnAdd").addEventListener("click",()=>addParticipant());
 $("#btnFetch").addEventListener("click",fetchFromBackend);
 $("#btnExport").addEventListener("click",exportExcel);
+/* ============ heals-chain/1 : 讀人（02-physio）承接與匯出 ============ */
+var HEALS_CHAIN=null;
+function hcParse(txt){var o=null;try{o=JSON.parse(txt);}catch(e){return{ok:false,err:"badjson"};}
+  if(!o||o.schema!=="heals-chain/1"||!o.project||!o.project.id||!Array.isArray(o.boundary)||o.boundary.length<3)return{ok:false,err:"badschema"};return{ok:true,chain:o};}
+function hcBadge(c){var nm={foundation:"讀地",physio:"讀人",ecology:"生態",social:"社會",zoning:"分區",health:"願景"};var st=(c&&c.stations)||{};
+  return Object.keys(nm).map(function(k){var h=!!st[k];return '<span style="color:'+(h?"#2f7d72":"#b8694a")+'">'+(h?"✓":"✗")+nm[k]+'</span>';}).join("　");}
+function importHealsChainPhysio(file){var rd=new FileReader();rd.onload=function(){var el=$("#hcStatus");var r=hcParse(String(rd.result));
+  if(!r.ok){if(el)el.innerHTML='<span style="color:#b8694a">'+(r.err==="badjson"?"這不是有效的 JSON。":"非 heals-chain/1 專案檔（缺 schema／project／boundary）。")+'</span>';return;}
+  HEALS_CHAIN=r.chain;
+  if(el)el.innerHTML='已接續專案：<b>'+String(r.chain.project.name||r.chain.project.id).replace(/</g,"&lt;")+'</b>　'+hcBadge(r.chain)+
+    '<br><span style="color:#8a856b">基地範圍已承接（'+r.chain.boundary.length+' 點）。走測資料對接後，按「匯出 heals-chain（02-physio）」寫回 stations.physio。</span>';};rd.readAsText(file);}
+function hcMM(mt,pats){mt=String(mt||"").toLowerCase();return pats.some(function(x){return mt.indexOf(x)>=0;});}
+function buildPhysioBlock(){
+  var tol=+((document.getElementById("tol")||{}).value)||90, acc=+((document.getElementById("acc")||{}).value)||50;
+  var active=participants.filter(function(p){return p.phys.length&&p.track.length;});
+  var rows=[];active.forEach(function(p){try{var j=joinParticipant(p,tol,acc);(j.rows||[]).forEach(function(r){rows.push(r);});}catch(e){}});
+  function mean(v){return v.length?+(v.reduce(function(a,b){return a+b;},0)/v.length).toFixed(1):null;}
+  function pick(pats){return rows.filter(function(r){return hcMM(r.metricType,pats);}).map(function(r){return +r.value;}).filter(isFinite);}
+  var hr=pick(["heart","心率","bpm"]),hrv=pick(["hrv","variab","變異","sdnn","rmssd"]),spo2=pick(["oxygen","spo2","血氧"]),resp=pick(["respir","breath","呼吸"]);
+  var metrics={};if(hr.length)metrics.hrMean=mean(hr);if(hrv.length)metrics.hrvMean=mean(hrv);if(spo2.length)metrics.spo2Mean=mean(spo2);if(resp.length)metrics.respMean=mean(resp);
+  var hrRows=rows.filter(function(r){return hcMM(r.metricType,["heart","心率","bpm"])&&isFinite(+r.lat)&&isFinite(+r.lng);});
+  hrRows.sort(function(a,b){return (a.time||0)-(b.time||0);});
+  var step=Math.max(1,Math.ceil(hrRows.length/200));
+  var hrPath=hrRows.filter(function(_,i){return i%step===0;}).map(function(r){return {lat:+(+r.lat).toFixed(6),lng:+(+r.lng).toFixed(6),hr:+r.value,t:r.time||null};});
+  var stressHotspots=[],restorationHotspots=[];
+  if(hrRows.length>=8){
+    var vs=hrRows.map(function(r){return +r.value;}).slice().sort(function(a,b){return a-b;});
+    var med=vs[Math.floor(vs.length/2)],lo=vs[0],hi=vs[vs.length-1];
+    var norm=function(v){return hi>lo?(v-lo)/(hi-lo):0.5;};
+    var far=function(L,la,ln){return L.every(function(h){var dy=(h.lat-la)*111000,dx=(h.lng-ln)*101000;return Math.sqrt(dx*dx+dy*dy)>40;});};
+    var hi2=hrRows.slice().sort(function(a,b){return b.value-a.value;});
+    var lo2=hrRows.slice().sort(function(a,b){return a.value-b.value;});
+    for(var i=0;i<hi2.length&&stressHotspots.length<5;i++){var r=hi2[i];if(r.value<med)break;var la=+(+r.lat).toFixed(6),ln=+(+r.lng).toFixed(6);if(far(stressHotspots,la,ln))stressHotspots.push({lat:la,lng:ln,value:+norm(r.value).toFixed(2),note:"心率偏高（"+r.value+" bpm，中位數以上 "+Math.round(r.value-med)+"）"});}
+    for(var k=0;k<lo2.length&&restorationHotspots.length<5;k++){var q=lo2[k];if(q.value>med)break;var a2=+(+q.lat).toFixed(6),n2=+(+q.lng).toFixed(6);if(far(restorationHotspots,a2,n2))restorationHotspots.push({lat:a2,lng:n2,value:+(1-norm(q.value)).toFixed(2),note:"心率偏低（"+q.value+" bpm，中位數以下 "+Math.round(med-q.value)+"）"});}
+  }
+  var block={participants:active.length,sessions:active.length};
+  if(Object.keys(metrics).length)block.metrics=metrics;
+  if(stressHotspots.length)block.stressHotspots=stressHotspots;
+  if(restorationHotspots.length)block.restorationHotspots=restorationHotspots;
+  if(hrPath.length)block.hrPath=hrPath;
+  block.note="壓力／恢復熱點由走測心率極值相對中位數推導，屬生理喚起代理指標、非臨床壓力判定；hrPath 為 GPS 對接之心率序列。";
+  return block;
+}
+function mergePhysioIntoChain(prior,physio){var now=new Date().toISOString(),out=null;
+  try{if(prior&&prior.schema==="heals-chain/1")out=JSON.parse(JSON.stringify(prior));}catch(e){out=null;}
+  if(!out)return{err:"nochain"};out.project=out.project||{};out.project.updatedAt=now;
+  if(!Array.isArray(out.boundary)||out.boundary.length<3)return{err:"noboundary"};
+  out.stations=out.stations||{};out.stations.physio=physio;out.from="physio";
+  out.trace=(Array.isArray(out.trace)?out.trace:[]).filter(function(e){return !(e&&e.station==="physio");});
+  out.trace.push({station:"physio",at:now});return{chain:out};}
+function hcSlugPhysio(){try{var id=(HEALS_CHAIN&&HEALS_CHAIN.project&&HEALS_CHAIN.project.id)||"";var m=id.match(/^heals_(.+)_\d{8}$/);if(m)return m[1];}catch(e){}
+  return (HEALS_CHAIN&&HEALS_CHAIN.site&&HEALS_CHAIN.site.locationName)||($("#projName")&&$("#projName").value)||"project";}
+function exportHealsChainPhysio(){var el=$("#hcStatus");
+  if(!HEALS_CHAIN){alert("讀人需要上游的基地範圍：請先按「匯入專案檔（讀地 01）」載入讀地匯出的 heals-chain 檔，再匯出。");return;}
+  var ready=participants.some(function(p){return p.phys.length&&p.track.length;});
+  if(!ready){alert("尚無可匯出的走測資料：每位參與者需同時有「生理」與「軌跡」，且能對接到 GPS。");return;}
+  var r=mergePhysioIntoChain(HEALS_CHAIN,buildPhysioBlock());
+  if(r.err){alert(r.err==="nochain"?"請先匯入上游專案檔（讀地 01）。":"上游專案檔缺基地範圍。");return;}
+  var name="heals-chain_"+String(hcSlugPhysio()).replace(/[\\/:*?"<>|\s]+/g,"-")+"_02-physio.json";
+  try{var blob=new Blob([JSON.stringify(r.chain,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);if(a.parentNode)a.parentNode.removeChild(a);},0);}catch(e){}
+  if(el)el.innerHTML='✓ 已匯出 <b>'+name+'</b>　'+hcBadge(r.chain)+'<br><span style="color:#8a856b">【去哪裡】交給生態（03）或分區（05），最終進綜整。壓力／恢復熱點供分區設介入優先序。</span>';}
+(function(){var imp=$("#btnHcImport"),inp=$("#hcFileInput"),exp=$("#btnHcExport");
+  if(imp&&inp){imp.addEventListener("click",function(){inp.click();});inp.addEventListener("change",function(e){var f=e.target.files[0];if(f)importHealsChainPhysio(f);e.target.value="";});}
+  if(exp)exp.addEventListener("click",exportHealsChainPhysio);})();
 $("#tol").addEventListener("input",e=>{$("#tolLbl").textContent=e.target.value+" 秒";renderMap();});
 $("#acc").addEventListener("input",e=>{$("#accLbl").textContent=e.target.value+" m";renderMap();});
 $("#size").addEventListener("input",e=>{$("#sizeLbl").textContent=e.target.value;renderMap();});
