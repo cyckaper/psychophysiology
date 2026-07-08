@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>反應區設定 · 景觀生心理研究</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
+    --moss:#5b7a45; --moss-deep:#3f5a2f; --teal:#2c6b5f; --clay:#b8694a;
+    --ink:#33301f; --soft:#6b6750;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;line-height:1.6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px 18px 60px;}
+  h1{font-family:"Noto Serif TC",Georgia,serif;font-size:24px;color:var(--moss-deep);margin:0 0 4px;letter-spacing:.5px;}
+  h1 span.zh{margin-left:10px;font-size:19px;}
+  .sub{color:var(--soft);font-size:14px;margin:0 0 14px;}
+  .rule{height:3px;background:linear-gradient(90deg,var(--moss),var(--teal));border-radius:3px;margin:0 0 16px;}
+  .lbl{font-size:12px;letter-spacing:1px;color:var(--clay);margin:0 0 3px;}
+  .bar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0;}
+  .fld{flex:1;min-width:190px;}
+  input[type=text],input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+    background:var(--paper);font-size:15px;font-family:inherit;color:var(--ink);}
+  .btn{padding:10px 16px;border:1px solid var(--moss-deep);background:var(--moss);color:#fff;
+    border-radius:8px;font-size:14.5px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .btn:hover{background:var(--moss-deep);}
+  .btn.ghost{background:var(--paper);color:var(--moss-deep);}
+  .btn.ghost:hover{background:#f1ece0;}
+  .btn.warn{background:var(--clay);border-color:#96543a;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .note{background:#fff8ee;border:1px solid #ecd9bf;border-left:4px solid var(--clay);
+    border-radius:9px;padding:10px 13px;margin:10px 0;font-size:14px;}
+  .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 8px;}
+  .hint{font-size:13px;color:var(--soft);}
+  #map{height:440px;border:1px solid var(--line);border-radius:12px;margin:6px 0 14px;}
+  .zcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;}
+  .zhead{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .dot{width:14px;height:14px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15);}
+  .zhead input{flex:1;}
+  .zgrid{display:flex;gap:10px;flex-wrap:wrap;}
+  .zgrid .fld{min-width:150px;}
+  .zacts{display:flex;gap:8px;margin-top:9px;}
+  .meta{font-size:12.5px;color:var(--soft);margin-top:6px;}
+  .empty{color:var(--soft);font-size:14px;padding:14px;text-align:center;
+    border:1px dashed var(--line);border-radius:12px;background:var(--paper);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>HEALS<span class="zh">反應區設定</span></h1>
+  <p class="sub">在地圖上畫出不規則反應區。受測者走進區域時，手機會跳出對應問卷。設定存在後端，手機收到「開始」指令時自動取用，受測者端不需任何設定。</p>
+  <div class="rule"></div>
+
+  <div class="bar">
+    <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
+    <div class="fld"><div class="lbl">專案名稱（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
+    <button class="btn ghost" id="btnLoad">從後端載入</button>
+    <button class="btn" id="btnSave">存到後端</button>
+  </div>
+  <div class="note" id="note" style="display:none"></div>
+
+  <div class="tools">
+    <button class="btn" id="btnDraw">＋ 新增區域</button>
+    <button class="btn ghost" id="btnUndo" disabled>復原一點</button>
+    <button class="btn ghost" id="btnDone" disabled>完成多邊形</button>
+    <button class="btn warn" id="btnCancel" disabled>取消</button>
+    <span class="hint" id="hint">按「新增區域」後，在地圖上依序點出頂點（至少 3 點），再按「完成多邊形」。</span>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="lbl">已設定的反應區</div>
+  <div id="zlist"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var PALETTE = ["#5b7a45","#2c6b5f","#b8694a","#7a6a2e","#4a6b8a","#8a4a6b","#3f5a2f","#a1743a"];
+
+  var zones = [];          // { zoneId, name, survey, repeatMinutes, latlngs:[[lat,lng]...], layer }
+  var seq = 0;
+  var map, drawing = false, pending = [], pendMarkers = [], pendLine = null;
+
+  /* ---- 地圖 ---- */
+  map = L.map("map").setView([25.0174, 121.5405], 16);   // 預設：臺大一帶
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  map.on("click", function(e){
+    if(!drawing) return;
+    var ll = e.latlng.wrap();                      // 避免經度超出 ±180
+    pending.push([ll.lat, ll.lng]);
+    var m = L.circleMarker(ll, {radius:5, color:"#3f5a2f", fillColor:"#fff", fillOpacity:1, weight:2}).addTo(map);
+    pendMarkers.push(m);
+    redrawPending();
+    updateTools();
+  });
+
+  function redrawPending(){
+    if(pendLine){ map.removeLayer(pendLine); pendLine = null; }
+    if(pending.length >= 2){
+      pendLine = L.polyline(pending, {color:"#3f5a2f", weight:2, dashArray:"5,5"}).addTo(map);
+    }
+  }
+  function clearPending(){
+    pendMarkers.forEach(function(m){ map.removeLayer(m); });
+    pendMarkers = []; pending = [];
+    if(pendLine){ map.removeLayer(pendLine); pendLine = null; }
+  }
+  function updateTools(){
+    $("#btnDraw").disabled   = drawing;
+    $("#btnUndo").disabled   = !drawing || pending.length === 0;
+    $("#btnDone").disabled   = !drawing || pending.length < 3;
+    $("#btnCancel").disabled = !drawing;
+    $("#hint").textContent = drawing
+      ? ("繪製中：已點 " + pending.length + " 點" + (pending.length < 3 ? "（至少 3 點）" : "，可按「完成多邊形」"))
+      : "按「新增區域」後，在地圖上依序點出頂點（至少 3 點），再按「完成多邊形」。";
+  }
+
+  /* ---- 繪圖流程 ---- */
+  $("#btnDraw").addEventListener("click", function(){
+    drawing = true; clearPending(); updateTools();
+  });
+  $("#btnUndo").addEventListener("click", function(){
+    if(!pending.length) return;
+    pending.pop();
+    var m = pendMarkers.pop(); if(m) map.removeLayer(m);
+    redrawPending(); updateTools();
+  });
+  $("#btnCancel").addEventListener("click", function(){
+    drawing = false; clearPending(); updateTools();
+  });
+  $("#btnDone").addEventListener("click", function(){
+    if(pending.length < 3) return;
+    addZone({ latlngs: pending.slice() });
+    drawing = false; clearPending(); updateTools(); renderZones();
+  });
+
+  /* ---- 區域 ---- */
+  function addZone(preset){
+    seq += 1;
+    var z = {
+      zoneId: (preset && preset.zoneId) || ("z" + seq),
+      name: (preset && preset.name) || ("區域 " + seq),
+      survey: (preset && preset.survey) || "",
+      repeatMinutes: (preset && Number(preset.repeatMinutes)) || 0,
+      latlngs: preset.latlngs,
+      color: PALETTE[(seq - 1) % PALETTE.length],
+      layer: null
+    };
+    zones.push(z);
+    return z;
+  }
+  function drawZoneLayers(){
+    zones.forEach(function(z){
+      if(z.layer){ map.removeLayer(z.layer); }
+      z.layer = L.polygon(z.latlngs, {color:z.color, weight:2, fillColor:z.color, fillOpacity:.18}).addTo(map);
+      z.layer.bindTooltip(z.name, {permanent:false});
+    });
+  }
+  function fitAll(){
+    var pts = [];
+    zones.forEach(function(z){ pts = pts.concat(z.latlngs); });
+    if(pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.2));
+  }
+
+  function renderZones(){
+    drawZoneLayers();
+    var box = $("#zlist");
+    box.innerHTML = "";
+    if(!zones.length){
+      box.innerHTML = '<div class="empty">尚未設定任何反應區。按上方「＋ 新增區域」開始在地圖上畫。</div>';
+      return;
+    }
+    zones.forEach(function(z, i){
+      var card = document.createElement("div");
+      card.className = "zcard";
+      card.innerHTML =
+        '<div class="zhead">' +
+          '<span class="dot" style="background:' + z.color + '"></span>' +
+          '<input type="text" class="n-name" value="' + escapeAttr(z.name) + '" placeholder="區域名稱">' +
+        '</div>' +
+        '<div class="zgrid">' +
+          '<div class="fld"><div class="lbl">問卷代號</div><input type="text" class="n-survey" value="' + escapeAttr(z.survey) + '" placeholder="例如：restorative-1"></div>' +
+          '<div class="fld"><div class="lbl">重複間隔（分鐘，0＝每場只跳一次）</div><input type="number" class="n-rep" min="0" step="1" value="' + Number(z.repeatMinutes) + '"></div>' +
+        '</div>' +
+        '<div class="zacts">' +
+          '<button class="btn ghost n-focus">在地圖上聚焦</button>' +
+          '<button class="btn warn n-del">刪除</button>' +
+        '</div>' +
+        '<div class="meta">' + z.zoneId + ' · ' + z.latlngs.length + ' 個頂點</div>';
+
+      card.querySelector(".n-name").addEventListener("input", function(e){
+        z.name = e.target.value; if(z.layer) z.layer.bindTooltip(z.name);
+      });
+      card.querySelector(".n-survey").addEventListener("input", function(e){ z.survey = e.target.value; });
+      card.querySelector(".n-rep").addEventListener("input", function(e){
+        var v = parseInt(e.target.value, 10); z.repeatMinutes = isNaN(v) || v < 0 ? 0 : v;
+      });
+      card.querySelector(".n-focus").addEventListener("click", function(){
+        map.fitBounds(L.latLngBounds(z.latlngs).pad(0.3));
+      });
+      card.querySelector(".n-del").addEventListener("click", function(){
+        if(!confirm("刪除「" + z.name + "」？")) return;
+        if(z.layer) map.removeLayer(z.layer);
+        zones.splice(i, 1);
+        renderZones();
+      });
+      box.appendChild(card);
+    });
+  }
+  function escapeAttr(s){ return String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+
+  /* ---- GeoJSON 轉換（注意：GeoJSON 是 [lng, lat]）---- */
+  function toGeoJSON(){
+    return {
+      type: "FeatureCollection",
+      features: zones.map(function(z){
+        var ring = z.latlngs.map(function(p){ return [p[1], p[0]]; });   // [lng,lat]
+        ring.push(ring[0].slice());                                       // 閉合
+        return {
+          type: "Feature",
+          geometry: { type: "Polygon", coordinates: [ring] },
+          properties: { zoneId: z.zoneId, name: z.name, survey: z.survey, repeatMinutes: z.repeatMinutes }
+        };
+      })
+    };
+  }
+  function fromGeoJSON(gj){
+    zones.forEach(function(z){ if(z.layer) map.removeLayer(z.layer); });
+    zones = []; seq = 0;
+    if(!gj || !Array.isArray(gj.features)) return;
+    gj.features.forEach(function(f){
+      if(!f.geometry || f.geometry.type !== "Polygon") return;
+      var ring = f.geometry.coordinates[0];
+      if(!ring || ring.length < 4) return;
+      var pts = ring.map(function(p){ return [p[1], p[0]]; });            // → [lat,lng]
+      var a = pts[0], b = pts[pts.length - 1];
+      if(a[0] === b[0] && a[1] === b[1]) pts.pop();                       // 去掉閉合重複點
+      var pr = f.properties || {};
+      addZone({ zoneId: pr.zoneId, name: pr.name, survey: pr.survey, repeatMinutes: pr.repeatMinutes, latlngs: pts });
+    });
+  }
+
+  /* ---- 後端 ---- */
+  function say(msg){ var n = $("#note"); n.style.display = "block"; n.textContent = msg; }
+  function endpoint(){
+    var b = $("#beBase").value.trim().replace(/\/+$/, "");
+    var p = $("#beProj").value.trim();
+    if(!b || !p){ alert("請填後端網址與專案名稱。"); return null; }
+    return { base: b, proj: p };
+  }
+
+  $("#btnLoad").addEventListener("click", function(){
+    var e = endpoint(); if(!e) return;
+    say("載入中…");
+    fetch(e.base + "/api/zones?project=" + encodeURIComponent(e.proj) + "&t=" + Date.now(), {cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(rec){
+        fromGeoJSON(rec.geojson);
+        renderZones(); fitAll();
+        say(zones.length
+          ? ("已載入「" + e.proj + "」的 " + zones.length + " 個反應區。")
+          : ("後端尚未設定「" + e.proj + "」的反應區。可直接在地圖上新增後存檔。"));
+      })
+      .catch(function(err){ say("載入失敗：" + err.message); });
+  });
+
+  $("#btnSave").addEventListener("click", function(){
+    var e = endpoint(); if(!e) return;
+    var gj = toGeoJSON();
+    say("儲存中…（" + gj.features.length + " 個區域）");
+    fetch(e.base + "/api/zones", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ project: e.proj, geojson: gj })
+    })
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(res){
+        say("✓ 已存到後端：「" + e.proj + "」共 " + res.count + " 個反應區。手機下一次收到「開始」指令時就會取用。");
+      })
+      .catch(function(err){ say("儲存失敗：" + err.message); });
+  });
+
+  renderZones();
+  updateTools();
+})();
+</script>
+</body>
+</html>
