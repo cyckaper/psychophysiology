@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>問卷設計 · 景觀生心理研究</title>
+<style>
+  :root{
+    --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
+    --moss:#5b7a45; --moss-deep:#3f5a2f; --teal:#2c6b5f; --clay:#b8694a;
+    --ink:#33301f; --soft:#6b6750;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;line-height:1.6;}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 80px;}
+  h1{font-family:"Noto Serif TC",Georgia,serif;font-size:24px;color:var(--moss-deep);margin:0 0 4px;letter-spacing:.5px;}
+  h1 span.zh{margin-left:10px;font-size:19px;}
+  h2{font-family:"Noto Serif TC",serif;font-size:19px;color:var(--moss-deep);margin:22px 0 8px;}
+  .sub{color:var(--soft);font-size:14px;margin:0 0 14px;}
+  .rule{height:3px;background:linear-gradient(90deg,var(--moss),var(--teal));border-radius:3px;margin:0 0 16px;}
+  .lbl{font-size:12px;letter-spacing:.5px;color:var(--clay);margin:0 0 3px;}
+  .bar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0;}
+  .fld{flex:1;min-width:170px;}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+    background:var(--paper);font-size:14.5px;font-family:inherit;color:var(--ink);}
+  .btn{padding:9px 15px;border:1px solid var(--moss-deep);background:var(--moss);color:#fff;
+    border-radius:8px;font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .btn:hover{background:var(--moss-deep);}
+  .btn.ghost{background:var(--paper);color:var(--moss-deep);}
+  .btn.ghost:hover{background:#f1ece0;}
+  .btn.warn{background:var(--clay);border-color:#96543a;}
+  .btn.sm{padding:5px 10px;font-size:12.5px;}
+  .note{background:#fff8ee;border:1px solid #ecd9bf;border-left:4px solid var(--clay);
+    border-radius:9px;padding:10px 13px;margin:10px 0;font-size:14px;}
+  .langpick{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin:8px 0;}
+  .langpick label{font-size:14px;cursor:pointer;}
+  .formsec{background:#f4efe1;border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0 22px;}
+  .qcard{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin:10px 0;}
+  .qhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .qhead .idx{font-weight:700;color:var(--moss-deep);min-width:20px;}
+  .qhead select{width:auto;}
+  .qhead .grow{flex:1;min-width:120px;}
+  .langgrid{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0;}
+  .langgrid .lf{flex:1;min-width:150px;}
+  .langtag{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--teal);
+    border-radius:5px;padding:1px 6px;margin-bottom:2px;}
+  .sub2{font-size:12px;color:var(--soft);margin:8px 0 2px;}
+  .choice{border:1px dashed var(--line);border-radius:9px;padding:9px 10px;margin:7px 0;background:#faf6ea;}
+  .choice .crow{display:flex;gap:8px;align-items:center;margin-bottom:5px;}
+  .qacts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .meta{font-size:12px;color:var(--soft);margin-top:6px;}
+  .empty{color:var(--soft);font-size:14px;padding:14px;text-align:center;border:1px dashed var(--line);border-radius:11px;background:var(--paper);}
+  .chk{margin-right:5px;}
+  .dragging{opacity:.4;}
+  .tmpl{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>HEALS<span class="zh">問卷設計</span></h1>
+  <p class="sub">為每個專案設計問卷。<b>入組</b>：受測者第一次用 App 填一次（基本資料、email）。<b>現場（EMA）</b>：走進反應區當下每次填。多語系：手機依系統語言顯示，答案落在同一欄位可跨國合併。設定存後端，手機收到「開始」時自動取用。</p>
+  <div class="rule"></div>
+
+  <div class="bar">
+    <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
+    <div class="fld"><div class="lbl">專案名稱（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
+    <button class="btn ghost" id="btnLoad">從後端載入</button>
+    <button class="btn" id="btnSave">存到後端</button>
+  </div>
+  <div class="note" id="note" style="display:none"></div>
+
+  <div class="langpick">
+    <span class="lbl" style="margin:0">支援語言</span>
+    <span id="langChecks"></span>
+    <span style="margin-left:auto"></span>
+    <span class="lbl" style="margin:0">預設語言</span>
+    <select id="defaultLang" style="width:auto"></select>
+  </div>
+
+  <h2>入組問卷（填一次）</h2>
+  <div class="formsec" id="secIntake">
+    <div class="tmpl">
+      <button class="btn ghost sm" data-tmpl="intake">套用入組範本</button>
+      <button class="btn sm" data-add="intake" data-type="scale">＋量尺</button>
+      <button class="btn sm" data-add="intake" data-type="single">＋單選</button>
+      <button class="btn sm" data-add="intake" data-type="multi">＋複選</button>
+      <button class="btn sm" data-add="intake" data-type="text">＋開放填答</button>
+      <button class="btn sm" data-add="intake" data-type="email">＋Email</button>
+    </div>
+    <div class="sub2">標題（各語言）</div>
+    <div class="langgrid" id="titleIntake"></div>
+    <div id="qsIntake"></div>
+  </div>
+
+  <h2>現場問卷 · EMA（每次填）</h2>
+  <div class="formsec" id="secEma">
+    <div class="tmpl">
+      <button class="btn ghost sm" data-tmpl="ema">套用 EMA 五題範本</button>
+      <button class="btn sm" data-add="ema" data-type="scale">＋量尺</button>
+      <button class="btn sm" data-add="ema" data-type="single">＋單選</button>
+      <button class="btn sm" data-add="ema" data-type="multi">＋複選</button>
+      <button class="btn sm" data-add="ema" data-type="text">＋開放填答</button>
+      <button class="btn sm" data-add="ema" data-type="email">＋Email</button>
+    </div>
+    <div class="sub2">標題（各語言）</div>
+    <div class="langgrid" id="titleEma"></div>
+    <div id="qsEma"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var LANG_NAMES = {zh:"中文", en:"English", ja:"日本語", ko:"한국어", es:"Español", fr:"Français", de:"Deutsch"};
+  var ALL_LANGS = ["zh","en","ja","ko","es","fr","de"];
+  var TYPE_NAMES = {scale:"量尺", single:"單選", multi:"複選", text:"開放填答", email:"Email"};
+
+  // 狀態
+  var state = {
+    languages: ["zh","en"],
+    defaultLang: "zh",
+    intake: { title:{}, questions:[] },
+    ema:    { title:{}, questions:[] }
+  };
+  var seqCounter = 0;
+  function uid(){ seqCounter++; return "row"+seqCounter; }
+
+  /* ---- 語言勾選列 ---- */
+  function renderLangPicker(){
+    var box = $("#langChecks"); box.innerHTML = "";
+    ALL_LANGS.forEach(function(l){
+      var on = state.languages.indexOf(l) >= 0;
+      var lab = document.createElement("label");
+      lab.innerHTML = '<input type="checkbox" class="chk" '+(on?"checked":"")+'> '+LANG_NAMES[l];
+      lab.querySelector("input").addEventListener("change", function(e){
+        if(e.target.checked){ if(state.languages.indexOf(l)<0) state.languages.push(l); }
+        else{ state.languages = state.languages.filter(function(x){return x!==l;}); }
+        if(!state.languages.length) state.languages = ["zh"];
+        if(state.languages.indexOf(state.defaultLang)<0) state.defaultLang = state.languages[0];
+        renderLangPicker(); renderAll();
+      });
+      box.appendChild(lab);
+    });
+    var sel = $("#defaultLang"); sel.innerHTML = "";
+    state.languages.forEach(function(l){
+      var o = document.createElement("option"); o.value=l; o.textContent=LANG_NAMES[l];
+      if(l===state.defaultLang) o.selected=true; sel.appendChild(o);
+    });
+  }
+  $("#defaultLang").addEventListener("change", function(e){ state.defaultLang = e.target.value; });
+
+  /* ---- 語言並排輸入框（一個 loc 物件）---- */
+  function locGrid(locObj, onInput, placeholderKey){
+    var g = document.createElement("div"); g.className="langgrid";
+    state.languages.forEach(function(l){
+      var wrap = document.createElement("div"); wrap.className="lf";
+      wrap.innerHTML = '<span class="langtag">'+LANG_NAMES[l]+'</span>';
+      var inp = document.createElement("input"); inp.type="text";
+      inp.value = locObj[l] || "";
+      inp.placeholder = (placeholderKey||"");
+      inp.addEventListener("input", function(){ locObj[l] = inp.value; onInput && onInput(); });
+      wrap.appendChild(inp); g.appendChild(wrap);
+    });
+    return g;
+  }
+
+  /* ---- 標題 ---- */
+  function renderTitle(which){
+    var host = $(which==="intake" ? "#titleIntake" : "#titleEma");
+    host.innerHTML = "";
+    var g = locGrid(state[which].title, null, "問卷標題");
+    while(g.firstChild) host.appendChild(g.firstChild);
+  }
+
+  /* ---- 題目卡 ---- */
+  function renderQuestions(which){
+    var host = $(which==="intake" ? "#qsIntake" : "#qsEma");
+    host.innerHTML = "";
+    var list = state[which].questions;
+    if(!list.length){
+      host.innerHTML = '<div class="empty">尚無題目。用上方按鈕新增，或套用範本。</div>';
+      return;
+    }
+    list.forEach(function(q, i){
+      host.appendChild(buildQCard(which, q, i));
+    });
+  }
+
+  function buildQCard(which, q, i){
+    var card = document.createElement("div");
+    card.className = "qcard"; card.draggable = true; card.dataset.uid = q._uid;
+
+    // 拖曳排序
+    card.addEventListener("dragstart", function(e){ card.classList.add("dragging"); e.dataTransfer.setData("text/plain", q._uid); });
+    card.addEventListener("dragend", function(){ card.classList.remove("dragging"); });
+    card.addEventListener("dragover", function(e){ e.preventDefault(); });
+    card.addEventListener("drop", function(e){
+      e.preventDefault();
+      var from = e.dataTransfer.getData("text/plain");
+      reorder(which, from, q._uid);
+    });
+
+    // 標頭：序號、題型、id、必填、刪除
+    var head = document.createElement("div"); head.className="qhead";
+    head.innerHTML = '<span class="idx">'+(i+1)+'.</span>';
+
+    var typeSel = document.createElement("select");
+    ["scale","single","multi","text","email"].forEach(function(t){
+      var o=document.createElement("option"); o.value=t; o.textContent=TYPE_NAMES[t];
+      if(t===q.type)o.selected=true; typeSel.appendChild(o);
+    });
+    typeSel.addEventListener("change", function(){ changeType(which, q._uid, typeSel.value); });
+    head.appendChild(labelWrap("題型", typeSel));
+
+    var idInp = document.createElement("input"); idInp.type="text"; idInp.value=q.id||"";
+    idInp.placeholder="英數 id（資料欄位名）";
+    idInp.addEventListener("input", function(){ q.id = idInp.value; });
+    var idw = labelWrap("id", idInp); idw.classList.add("grow"); head.appendChild(idw);
+
+    var reqLab = document.createElement("label"); reqLab.style.fontSize="13px";
+    reqLab.innerHTML = '<input type="checkbox" class="chk" '+(q.required?"checked":"")+'>必填';
+    reqLab.querySelector("input").addEventListener("change", function(e){ q.required = e.target.checked; });
+    head.appendChild(reqLab);
+
+    var del = document.createElement("button"); del.className="btn warn sm"; del.textContent="刪除";
+    del.addEventListener("click", function(){ removeQ(which, q._uid); });
+    head.appendChild(del);
+
+    card.appendChild(head);
+
+    // 題目文字（多語言）
+    card.appendChild(sub("題目文字"));
+    card.appendChild(locGrid(q.text, null, "題目"));
+
+    // 題型專屬
+    if(q.type==="scale"){
+      var srow = document.createElement("div"); srow.className="bar"; srow.style.margin="8px 0 2px";
+      var minI=numInput(q.min,1,function(v){q.min=v;}), maxI=numInput(q.max,5,function(v){q.max=v;});
+      srow.appendChild(labelWrap("最小值", minI));
+      srow.appendChild(labelWrap("最大值", maxI));
+      card.appendChild(srow);
+      card.appendChild(sub("左端標籤（最小值說明）"));
+      card.appendChild(locGrid(q.low, null, "如：很差"));
+      card.appendChild(sub("右端標籤（最大值說明）"));
+      card.appendChild(locGrid(q.high, null, "如：很好"));
+    }
+    else if(q.type==="single" || q.type==="multi"){
+      card.appendChild(sub("選項（每個選項含各語言標籤；value 留空自動編號）"));
+      var cbox = document.createElement("div"); cbox.dataset.choices="1";
+      q.choices.forEach(function(c, ci){ cbox.appendChild(buildChoice(q, c, ci)); });
+      card.appendChild(cbox);
+      var addC = document.createElement("button"); addC.className="btn ghost sm"; addC.textContent="＋新增選項";
+      addC.style.marginTop="6px";
+      addC.addEventListener("click", function(){
+        q.choices.push({ value:"", label:{} });
+        renderQuestions(which);
+      });
+      card.appendChild(addC);
+    }
+    else if(q.type==="text"){
+      var ml = document.createElement("label"); ml.style.fontSize="13px"; ml.style.display="block"; ml.style.marginTop="8px";
+      ml.innerHTML = '<input type="checkbox" class="chk" '+(q.multiline?"checked":"")+'>多行（心得類長答）';
+      ml.querySelector("input").addEventListener("change", function(e){ q.multiline = e.target.checked; });
+      card.appendChild(ml);
+    }
+    else if(q.type==="email"){
+      card.appendChild(metaLine("受測者填 email；手機端會驗格式。此欄可作為跨資料對接的識別。"));
+    }
+
+    return card;
+  }
+
+  function buildChoice(q, c, ci){
+    var box = document.createElement("div"); box.className="choice";
+    var crow = document.createElement("div"); crow.className="crow";
+    var v = document.createElement("input"); v.type="text"; v.value=c.value||""; v.placeholder="value（英數，可留空）";
+    v.style.maxWidth="200px";
+    v.addEventListener("input", function(){ c.value = v.value; });
+    crow.appendChild(v);
+    var del = document.createElement("button"); del.className="btn warn sm"; del.textContent="刪選項";
+    del.addEventListener("click", function(){
+      q.choices = q.choices.filter(function(x){return x!==c;});
+      // 重繪所在題
+      var which = state.intake.questions.indexOf(q)>=0 ? "intake":"ema";
+      renderQuestions(which);
+    });
+    crow.appendChild(del);
+    box.appendChild(crow);
+    box.appendChild(locGrid(c.label, null, "選項標籤"));
+    return box;
+  }
+
+  /* ---- 小工具 ---- */
+  function sub(t){ var d=document.createElement("div"); d.className="sub2"; d.textContent=t; return d; }
+  function metaLine(t){ var d=document.createElement("div"); d.className="meta"; d.textContent=t; return d; }
+  function labelWrap(t, el){ var w=document.createElement("div"); w.appendChild(sub(t)); w.appendChild(el); return w; }
+  function numInput(val, def, on){
+    var i=document.createElement("input"); i.type="number"; i.value=(val==null?def:val); i.style.maxWidth="110px";
+    i.addEventListener("input", function(){ var n=parseInt(i.value,10); on(isNaN(n)?def:n); });
+    return i;
+  }
+
+  /* ---- 題目增刪改型排序 ---- */
+  function newQ(type){
+    var q = { _uid: uid(), id:"", type:type, text:{}, required:false };
+    if(type==="scale"){ q.min=1; q.max=5; q.low={}; q.high={}; }
+    if(type==="single"||type==="multi"){ q.choices=[{value:"",label:{}},{value:"",label:{}}]; }
+    if(type==="text"){ q.multiline=false; }
+    return q;
+  }
+  function addQ(which, type){ state[which].questions.push(newQ(type)); renderQuestions(which); }
+  function removeQ(which, u){ state[which].questions = state[which].questions.filter(function(q){return q._uid!==u;}); renderQuestions(which); }
+  function changeType(which, u, type){
+    var arr=state[which].questions, idx=arr.findIndex(function(q){return q._uid===u;});
+    if(idx<0)return;
+    var old=arr[idx], nq=newQ(type);
+    nq._uid=old._uid; nq.id=old.id; nq.text=old.text; nq.required=old.required;   // 保留共通欄位
+    arr[idx]=nq; renderQuestions(which);
+  }
+  function reorder(which, fromU, toU){
+    if(fromU===toU)return;
+    var arr=state[which].questions;
+    var fi=arr.findIndex(function(q){return q._uid===fromU;});
+    var ti=arr.findIndex(function(q){return q._uid===toU;});
+    if(fi<0||ti<0)return;
+    var m=arr.splice(fi,1)[0]; arr.splice(ti,0,m); renderQuestions(which);
+  }
+
+  /* ---- 範本 ---- */
+  function L(zh,en,ja){ var o={zh:zh}; if(en)o.en=en; if(ja)o.ja=ja; return o; }
+  function tmplIntake(){
+    return {
+      title: L("受測者基本資料","Participant Background","参加者の基本情報"),
+      questions: [
+        Object.assign(newQ("email"), { id:"email", required:true, text:L("電子郵件","Email","メール") }),
+        Object.assign(newQ("single"), { id:"age", text:L("年齡","Age","年齢"), choices:[
+          {value:"u18",label:L("未滿 18","Under 18","18歳未満")},
+          {value:"18_29",label:L("18–29","18–29","18–29")},
+          {value:"30_44",label:L("30–44","30–44","30–44")},
+          {value:"45_59",label:L("45–59","45–59","45–59")},
+          {value:"60p",label:L("60 以上","60+","60以上")}
+        ]}),
+        Object.assign(newQ("single"), { id:"gender", text:L("性別","Gender","性別"), choices:[
+          {value:"f",label:L("女","Female","女性")},
+          {value:"m",label:L("男","Male","男性")},
+          {value:"other",label:L("其他／不願透露","Other / prefer not to say","その他／回答しない")}
+        ]}),
+        Object.assign(newQ("single"), { id:"edu", text:L("教育程度","Education","学歴"), choices:[
+          {value:"hs",label:L("高中職以下","High school or below","高校以下")},
+          {value:"univ",label:L("大學","University","大学")},
+          {value:"grad",label:L("研究所以上","Graduate or above","大学院以上")}
+        ]}),
+        Object.assign(newQ("text"), { id:"residence", text:L("居住地（縣市／地區）","Residence (city/region)","居住地（市／地域）") })
+      ]
+    };
+  }
+  function tmplEma(){
+    return {
+      title: L("此刻感受","How you feel now","今の感覚"),
+      questions: [
+        scaleQ("mood","此刻的心情","Current mood","今の気分","很差","Very bad","とても悪い","很好","Very good","とても良い"),
+        scaleQ("stress","此刻的壓力感","Current stress","今のストレス","完全放鬆","Fully relaxed","完全にリラックス","非常緊繃","Very tense","とても緊張"),
+        scaleQ("restored","此刻的放鬆／恢復感","Sense of restoration","回復感","完全沒有","None at all","全くない","非常放鬆","Fully restored","十分に回復"),
+        scaleQ("vitality","此刻的活力","Current vitality","活力","很低","Very low","とても低い","很高","Very high","とても高い"),
+        scaleQ("liking","對這個環境的喜歡程度","Liking of this place","この環境への好み","很不喜歡","Strongly dislike","とても嫌い","非常喜歡","Strongly like","とても好き")
+      ]
+    };
+  }
+  function scaleQ(id,tz,te,tj,lz,le,lj,hz,he,hj){
+    return Object.assign(newQ("scale"), { id:id, min:1, max:5,
+      text:L(tz,te,tj), low:L(lz,le,lj), high:L(hz,he,hj) });
+  }
+  function applyTemplate(which){
+    if(state[which].questions.length && !confirm("這會取代「"+(which==="intake"?"入組":"EMA")+"」目前的內容，確定套用範本？")) return;
+    var t = which==="intake" ? tmplIntake() : tmplEma();
+    // 確保範本語言都在支援清單裡
+    ["zh","en","ja"].forEach(function(l){ if(state.languages.indexOf(l)<0) state.languages.push(l); });
+    state[which] = t;
+    renderLangPicker(); renderAll();
+  }
+
+  /* ---- 全部重繪 ---- */
+  function renderAll(){
+    // 確保每題有 _uid
+    ["intake","ema"].forEach(function(w){
+      state[w].questions.forEach(function(q){ if(!q._uid) q._uid=uid(); });
+      renderTitle(w); renderQuestions(w);
+    });
+  }
+
+  /* ---- 按鈕綁定 ---- */
+  document.querySelectorAll("[data-add]").forEach(function(b){
+    b.addEventListener("click", function(){ addQ(b.dataset.add, b.dataset.type); });
+  });
+  document.querySelectorAll("[data-tmpl]").forEach(function(b){
+    b.addEventListener("click", function(){ applyTemplate(b.dataset.tmpl); });
+  });
+
+  /* ---- 後端 ---- */
+  function say(msg){ var n=$("#note"); n.style.display="block"; n.textContent=msg; }
+  function endpoint(){
+    var b=$("#beBase").value.trim().replace(/\/+$/,""), p=$("#beProj").value.trim();
+    if(!b||!p){ alert("請填後端網址與專案名稱。"); return null; }
+    return { base:b, proj:p };
+  }
+  // 送出前：去掉 _uid（前端內部用）
+  function serializeForm(f){
+    return { title:f.title, questions:f.questions.map(function(q){
+      var c=Object.assign({},q); delete c._uid; return c;
+    })};
+  }
+
+  $("#btnLoad").addEventListener("click", function(){
+    var e=endpoint(); if(!e)return; say("載入中…");
+    fetch(e.base+"/api/survey?project="+encodeURIComponent(e.proj)+"&t="+Date.now(),{cache:"no-store"})
+      .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(rec){
+        state.languages = (rec.languages&&rec.languages.length)? rec.languages : ["zh","en"];
+        state.defaultLang = rec.defaultLang || state.languages[0];
+        state.intake = rec.intake || {title:{},questions:[]};
+        state.ema = rec.ema || {title:{},questions:[]};
+        renderLangPicker(); renderAll();
+        say("已載入「"+e.proj+"」：入組 "+state.intake.questions.length+" 題、EMA "+state.ema.questions.length+" 題。");
+      })
+      .catch(function(err){ say("載入失敗："+err.message); });
+  });
+
+  $("#btnSave").addEventListener("click", function(){
+    var e=endpoint(); if(!e)return; say("儲存中…");
+    var payload = {
+      project: e.proj,
+      languages: state.languages,
+      defaultLang: state.defaultLang,
+      intake: serializeForm(state.intake),
+      ema: serializeForm(state.ema)
+    };
+    fetch(e.base+"/api/survey", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)})
+      .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
+      .then(function(res){
+        say("✓ 已存到後端：「"+e.proj+"」入組 "+res.counts.intake+" 題、EMA "+res.counts.ema+" 題。手機下次收到「開始」時就會取用。"
+          + "（不合規的題目——如題目空白、選項少於兩個——會被自動略過。）");
+      })
+      .catch(function(err){ say("儲存失敗："+err.message); });
+  });
+
+  // 初始化
+  renderLangPicker();
+  renderAll();
+})();
+</script>
+</body>
+</html>
