@@ -42,10 +42,12 @@ export default async (req) => {
     const environment = Array.isArray(body.environment) ? body.environment : [];
 
     const key = `${project}/${code}/${session}`;
+    const intake = (body.intake && typeof body.intake === "object") ? body.intake : null;
     const record = {
       project, code, session, uploadedAt: Date.now(),
       counts: { physiology: physiology.length, location: location.length, environment: environment.length },
       physiology, location, environment,
+      intake,                                    // 受測者入組基本資料（可能為 null）
     };
     await store.setJSON(key, record);   // 單一寫入
     return reply({ ok: true, key, counts: record.counts });
