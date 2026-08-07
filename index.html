@@ -3,91 +3,215 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>景觀生心理研究 · Psycho-Physiology Study</title>
+<title>專案清單 — HEALS 生心理研究平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
-    --moss:#5b7a45; --moss-deep:#3f5a2f; --teal:#2c6b5f; --clay:#b8694a;
-    --ink:#33301f; --soft:#6b6750;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:
-      radial-gradient(1200px 500px at 50% -10%, #fff8e8 0%, var(--cream) 60%);
-    color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;
-    line-height:1.65;display:flex;align-items:center;justify-content:center;}
-  .wrap{max-width:560px;width:100%;padding:40px 20px 56px;}
-  .brand{font-family:"Noto Serif TC",Georgia,serif;font-size:13px;letter-spacing:3px;
-    color:var(--teal);text-transform:uppercase;margin:0 0 4px;}
-  h1{font-family:"Noto Serif TC",Georgia,serif;font-size:27px;color:var(--moss-deep);
-    margin:0 0 6px;letter-spacing:1px;}
-  .sub{color:var(--soft);font-size:14.5px;margin:0 0 6px;}
-  .en{font-family:"Noto Serif TC",Georgia,serif;font-style:italic;font-size:14.5px;
-    letter-spacing:1.5px;color:var(--teal);margin:0 0 8px;}
-  .flow{color:var(--soft);font-size:12.5px;margin:0 0 26px;}
-  .flow b{color:var(--moss);}
-  a.card{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;
-    background:var(--paper);border:1px solid var(--line);border-radius:14px;
-    padding:16px 18px;margin:12px 0;transition:transform .12s ease, box-shadow .12s ease, border-color .12s;}
-  a.card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(63,90,47,.10);border-color:#d6cbae;}
-  .ico{flex:none;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;
-    justify-content:center;font-size:22px;background:#eef3e8;border:1px solid #d9e6cc;}
-  .c-panel .ico{background:#e7f1ec;border-color:#c7e0d6;}
-  .c-zones .ico{background:#f2efe1;border-color:#ddd5bb;}
-  .c-survey .ico{background:#eef1e6;border-color:#d5ddc4;}
-  .c-console .ico{background:#eef3e8;border-color:#d9e6cc;}
-  .c-guide .ico{background:#fbf0e9;border-color:#ecd2c4;}
-  .ct{flex:1;min-width:0;}
-  .ct .t{font-family:"Noto Serif TC",serif;font-size:17.5px;font-weight:600;color:var(--moss-deep);}
-  .ct .d{font-size:13px;color:var(--soft);margin-top:1px;}
-  .arr{flex:none;color:#b9b29a;font-size:20px;}
-  .foot{margin-top:24px;text-align:center;color:var(--soft);font-size:12px;}
-  .foot .dot{height:3px;width:54px;margin:0 auto 12px;border-radius:3px;
-    background:linear-gradient(90deg,var(--moss),var(--teal));}
+:root{
+  --paper:#F6F1E3;
+  --card:#FFFDF7;
+  --ink:#26301F;
+  --forest:#2C5F2D;
+  --moss:#5A6B3E;
+  --clay:#B8694A;
+  --hairline:rgba(44,95,45,.22);
+  --serif:"Noto Serif TC",serif;
+  --sans:"Noto Sans TC",system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--forest)}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 64px}
+
+header.site{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  border-bottom:2px solid var(--forest);padding-bottom:12px;margin-bottom:24px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.brand small{display:block;font-family:var(--sans);font-weight:400;font-size:.78rem;color:var(--moss)}
+nav.site a{font-size:.85rem;margin-left:14px;text-decoration:none}
+nav.site a:hover{text-decoration:underline}
+
+h1{font-family:var(--serif);font-size:1.5rem;margin-bottom:4px}
+.lede{color:var(--moss);font-size:.9rem;margin-bottom:24px}
+
+.panel{background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:18px 18px 20px;margin-bottom:28px}
+.panel h2{font-family:var(--serif);font-size:1.05rem;margin-bottom:12px}
+.formrow{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;margin-bottom:10px}
+.formrow label{font-size:.85rem;color:var(--moss)}
+input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--hairline);border-radius:6px;background:#fff;width:100%}
+input.mono{font-family:var(--mono)}
+input:focus{outline:2px solid var(--forest);outline-offset:1px}
+.hint{grid-column:2;font-size:.75rem;color:var(--moss)}
+button.primary{font:inherit;font-weight:500;background:var(--forest);color:#fff;border:0;border-radius:6px;
+  padding:9px 22px;cursor:pointer;margin-top:6px}
+button.primary:hover{filter:brightness(1.08)}
+button.primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.msg{margin-top:10px;font-size:.85rem;min-height:1.2em}
+.msg.err{color:var(--clay)}
+.msg.ok{color:var(--forest)}
+
+.listhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.listhead h2{font-family:var(--serif);font-size:1.05rem}
+.count{font-size:.8rem;color:var(--moss)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{display:block;background:var(--card);border:1px solid var(--hairline);border-radius:10px;
+  padding:14px 16px;text-decoration:none;color:inherit;transition:border-color .15s}
+.card:hover{border-color:var(--forest)}
+.card:focus-visible{outline:2px solid var(--forest);outline-offset:2px}
+.card .code{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--forest);letter-spacing:.02em}
+.card .name{font-family:var(--serif);font-size:1rem;margin-top:2px}
+.card .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.75rem;color:var(--moss)}
+.stamp{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:.7rem;letter-spacing:.08em}
+.stamp.active{color:var(--forest)}
+.stamp.archived{color:var(--clay)}
+.empty{color:var(--moss);font-size:.9rem;padding:18px 4px}
+details.archived{margin-top:26px}
+details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin-bottom:12px}
+.banner{background:#fff;border:1px solid var(--clay);color:var(--clay);border-radius:8px;
+  padding:10px 14px;font-size:.85rem;margin-bottom:18px;display:none}
+@media (max-width:560px){.formrow{grid-template-columns:1fr}.hint{grid-column:1}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <p class="brand">HEALS Design</p>
-  <h1>景觀生心理研究</h1>
-  <p class="en">Psycho-Physiology Study</p>
-  <p class="sub">遠端遙控 · 連續收集 · 心率路線圖</p>
-  <p class="flow"><b>面板開始</b> → 手機自動記錄 → 走測 → <b>面板停止</b> → 手機上傳 → <b>主控台出圖</b></p>
 
-  <a class="card c-panel" href="panel.html">
-    <div class="ico">🎛️</div>
-    <div class="ct"><div class="t">控制面板</div><div class="d">開始／停止研究、看各專案狀態</div></div>
-    <div class="arr">›</div>
-  </a>
+<header class="site">
+  <div class="brand">HEALS 生心理研究平台<small>場域生心理量測 · 遠端遙控</small></div>
+  <nav class="site">
+    <a href="guide.html">操作手冊</a>
+  </nav>
+</header>
 
-  <a class="card c-zones" href="zones.html">
-    <div class="ico">📍</div>
-    <div class="ct"><div class="t">反應區設定</div><div class="d">在地圖上畫不規則區域，走進去就跳問卷</div></div>
-    <div class="arr">›</div>
-  </a>
+<h1>專案清單</h1>
+<p class="lede">一切以專案為中心：範圍、問卷、執行與資料，都以專案代號歸檔。點入專案後依作業順序逐站設定。</p>
 
-  <a class="card c-survey" href="survey.html">
-    <div class="ico">📝</div>
-    <div class="ct"><div class="t">問卷設計</div><div class="d">多語系問卷（入組＋現場 EMA），手機自動取用</div></div>
-    <div class="arr">›</div>
-  </a>
+<div id="banner" class="banner"></div>
 
-  <a class="card c-console" href="console.html">
-    <div class="ico">🗺️</div>
-    <div class="ct"><div class="t">資料主控台</div><div class="d">抓取資料、出地圖與專案 Excel</div></div>
-    <div class="arr">›</div>
-  </a>
-
-  <a class="card c-guide" href="guide.html">
-    <div class="ico">📖</div>
-    <div class="ct"><div class="t">操作手冊</div><div class="d">從頭到尾的步驟說明（含每步目的與操作）</div></div>
-    <div class="arr">›</div>
-  </a>
-
-  <div class="foot">
-    <div class="dot"></div>
-    一場走測：開始 → 走（手錶開「戶外步行」）→ 停止 → 充電同步 → 撈取 → 上傳 → 抓取出圖
+<section class="panel" aria-labelledby="createTitle">
+  <h2 id="createTitle">建立專案</h2>
+  <div class="formrow">
+    <label for="pid">專案代號</label>
+    <input type="text" id="pid" class="mono" maxlength="32" autocomplete="off"
+           placeholder="例：aa、park2026">
+    <p class="hint">英數短碼（可含 - 與 _），是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
   </div>
+  <div class="formrow">
+    <label for="pname">專案名稱</label>
+    <input type="text" id="pname" autocomplete="off" placeholder="例：大安森林公園走測（2026 春）">
+  </div>
+  <div class="formrow">
+    <label for="pnote">備註</label>
+    <input type="text" id="pnote" autocomplete="off" placeholder="選填：案場、期程、負責人">
+  </div>
+  <button class="primary" id="createBtn">建立專案</button>
+  <p class="msg" id="createMsg" role="status"></p>
+</section>
+
+<div class="listhead">
+  <h2>進行中</h2>
+  <span class="count" id="activeCount"></span>
 </div>
+<div class="grid" id="activeGrid"></div>
+<p class="empty" id="activeEmpty" hidden>尚無專案。建立第一個專案後，範圍、問卷與量測資料都會以專案代號歸檔。</p>
+
+<details class="archived" id="archivedWrap" hidden>
+  <summary>已封存的專案（<span id="archivedCount">0</span>）</summary>
+  <div class="grid" id="archivedGrid"></div>
+</details>
+
+</div>
+<script>
+const API = "/api/projects";
+const $ = (id) => document.getElementById(id);
+
+function showBanner(text){
+  const b = $("banner");
+  b.textContent = text;
+  b.style.display = "block";
+}
+
+function fmtTime(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  const p = (n)=>String(n).padStart(2,"0");
+  return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+
+function cardEl(p){
+  const a = document.createElement("a");
+  a.className = "card";
+  a.href = "project.html?id=" + encodeURIComponent(p.id);
+  const stampClass = p.status === "archived" ? "archived" : "active";
+  const stampText  = p.status === "archived" ? "封存" : "進行中";
+  a.innerHTML =
+    '<div class="code"></div>' +
+    '<div class="name"></div>' +
+    '<div class="meta"><span class="stamp '+stampClass+'">'+stampText+'</span><span class="time"></span></div>';
+  a.querySelector(".code").textContent = p.id;
+  a.querySelector(".name").textContent = p.name || p.id;
+  a.querySelector(".time").textContent = fmtTime(p.updatedAt);
+  return a;
+}
+
+async function load(){
+  try{
+    const res = await fetch(API, {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    const list = Array.isArray(data.projects) ? data.projects : [];
+    const active = list.filter(p=>p.status!=="archived");
+    const archived = list.filter(p=>p.status==="archived");
+
+    const ag = $("activeGrid"); ag.replaceChildren();
+    active.forEach(p=>ag.appendChild(cardEl(p)));
+    $("activeEmpty").hidden = active.length>0;
+    $("activeCount").textContent = active.length ? active.length+" 個" : "";
+
+    const arw = $("archivedWrap");
+    arw.hidden = archived.length===0;
+    $("archivedCount").textContent = archived.length;
+    const gg = $("archivedGrid"); gg.replaceChildren();
+    archived.forEach(p=>gg.appendChild(cardEl(p)));
+  }catch(e){
+    showBanner("無法載入專案清單：" + e.message + "。請確認 projects.mjs 已部署後重新整理。");
+  }
+}
+
+async function createProject(){
+  const msg = $("createMsg");
+  msg.className = "msg";
+  msg.textContent = "";
+  const id = $("pid").value.trim();
+  if(!/^[A-Za-z0-9_-]{1,32}$/.test(id)){
+    msg.className = "msg err";
+    msg.textContent = "專案代號必須為 1–32 字元英數短碼（可含 - 與 _）。";
+    return;
+  }
+  const body = { id, name: $("pname").value.trim(), note: $("pnote").value.trim() };
+  const btn = $("createBtn");
+  btn.disabled = true;
+  try{
+    const res = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
+    msg.className = "msg ok";
+    msg.textContent = "已建立專案 " + data.project.id + "。";
+    $("pid").value = ""; $("pname").value = ""; $("pnote").value = "";
+    await load();
+  }catch(e){
+    msg.className = "msg err";
+    msg.textContent = "建立失敗：" + e.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+$("createBtn").addEventListener("click", createProject);
+["pid","pname","pnote"].forEach(id=>{
+  $(id).addEventListener("keydown", (ev)=>{ if(ev.key==="Enter") createProject(); });
+});
+load();
+</script>
 </body>
 </html>

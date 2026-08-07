@@ -86,7 +86,7 @@ footer.transition a{color:var(--moss)}
 <body>
 <div class="wrap">
 
-<a class="back" href="projects.html">← 專案清單</a>
+<a class="back" href="index.html">← 專案清單</a>
 
 <div class="head">
   <div class="code" id="hCode"></div>
@@ -258,7 +258,7 @@ $("deleteBtn").addEventListener("click", async ()=>{
     const res = await fetch(API+"?id="+encodeURIComponent(pid), {method:"DELETE"});
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
-    location.href = "projects.html";
+    location.href = "index.html";
   }catch(e){
     showBanner("移除失敗：" + e.message);
   }
