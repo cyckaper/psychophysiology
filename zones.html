@@ -46,19 +46,23 @@
   .meta{font-size:12.5px;color:var(--soft);margin-top:6px;}
   .empty{color:var(--soft);font-size:14px;padding:14px;text-align:center;
     border:1px dashed var(--line);border-radius:12px;background:var(--paper);}
+  .backlink{color:var(--moss-deep);text-decoration:none;font-size:14px;}
+  .backlink:hover{text-decoration:underline;}
+  .chip{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--moss-deep);
+    border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 10px;font-size:14px;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>HEALS<span class="zh">反應區設定</span></h1>
-  <p class="sub">在地圖上畫出不規則反應區。受測者走進區域時，手機會跳出對應問卷。設定存在後端，手機收到「開始」指令時自動取用，受測者端不需任何設定。</p>
+  <p class="sub">在地圖上畫出不規則反應區。受測者在手機選定本專案後自動取用；走進區域時跳出現場問卷，走出未完成則作廢。受測者端不需任何設定。</p>
   <div class="rule"></div>
 
-  <div class="bar">
-    <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
-    <div class="fld"><div class="lbl">專案名稱（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
-    <button class="btn ghost" id="btnLoad">從後端載入</button>
-    <button class="btn" id="btnSave">存到後端</button>
+  <div class="bar" style="align-items:center">
+    <a class="backlink" id="backLink" href="projects.html">← 返回專案</a>
+    <span class="chip" id="projChip">—</span>
+    <span style="flex:1"></span>
+    <button class="btn" id="btnSave">儲存反應區</button>
   </div>
   <div class="note" id="note" style="display:none"></div>
 
@@ -82,6 +86,7 @@
   "use strict";
   var $ = function(s){ return document.querySelector(s); };
   var PALETTE = ["#5b7a45","#2c6b5f","#b8694a","#7a6a2e","#4a6b8a","#8a4a6b","#3f5a2f","#a1743a"];
+  var PROJ = (new URLSearchParams(location.search).get("project") || "").trim();
 
   var zones = [];          // { zoneId, name, survey, repeatMinutes, latlngs:[[lat,lng]...], layer }
   var seq = 0;
@@ -115,7 +120,7 @@
     if(pendLine){ map.removeLayer(pendLine); pendLine = null; }
   }
   function updateTools(){
-    $("#btnDraw").disabled   = drawing;
+    $("#btnDraw").disabled   = drawing || !PROJ;
     $("#btnUndo").disabled   = !drawing || pending.length === 0;
     $("#btnDone").disabled   = !drawing || pending.length < 3;
     $("#btnCancel").disabled = !drawing;
@@ -188,23 +193,21 @@
           '<input type="text" class="n-name" value="' + escapeAttr(z.name) + '" placeholder="區域名稱">' +
         '</div>' +
         '<div class="zgrid">' +
-          '<div class="fld"><div class="lbl">問卷代號</div><input type="text" class="n-survey" value="' + escapeAttr(z.survey) + '" placeholder="例如：restorative-1"></div>' +
           '<div class="fld"><div class="lbl">重複間隔（分鐘，0＝每場只跳一次）</div><input type="number" class="n-rep" min="0" step="1" value="' + Number(z.repeatMinutes) + '"></div>' +
         '</div>' +
         '<div class="zacts">' +
-          '<button class="btn ghost n-focus">在地圖上聚焦</button>' +
           '<button class="btn warn n-del">刪除</button>' +
         '</div>' +
-        '<div class="meta">' + z.zoneId + ' · ' + z.latlngs.length + ' 個頂點</div>';
+        '<div class="meta">' + z.zoneId + ' · ' + z.latlngs.length + ' 個頂點 · 點卡片可在地圖聚焦</div>';
 
       card.querySelector(".n-name").addEventListener("input", function(e){
         z.name = e.target.value; if(z.layer) z.layer.bindTooltip(z.name);
       });
-      card.querySelector(".n-survey").addEventListener("input", function(e){ z.survey = e.target.value; });
       card.querySelector(".n-rep").addEventListener("input", function(e){
         var v = parseInt(e.target.value, 10); z.repeatMinutes = isNaN(v) || v < 0 ? 0 : v;
       });
-      card.querySelector(".n-focus").addEventListener("click", function(){
+      card.addEventListener("click", function(ev){
+        if(ev.target.closest("input,button")) return;
         map.fitBounds(L.latLngBounds(z.latlngs).pad(0.3));
       });
       card.querySelector(".n-del").addEventListener("click", function(){
@@ -251,46 +254,48 @@
 
   /* ---- 後端 ---- */
   function say(msg){ var n = $("#note"); n.style.display = "block"; n.textContent = msg; }
-  function endpoint(){
-    var b = $("#beBase").value.trim().replace(/\/+$/, "");
-    var p = $("#beProj").value.trim();
-    if(!b || !p){ alert("請填後端網址與專案名稱。"); return null; }
-    return { base: b, proj: p };
-  }
 
-  $("#btnLoad").addEventListener("click", function(){
-    var e = endpoint(); if(!e) return;
+  function loadZones(){
     say("載入中…");
-    fetch(e.base + "/api/zones?project=" + encodeURIComponent(e.proj) + "&t=" + Date.now(), {cache:"no-store"})
+    fetch("/api/zones?project=" + encodeURIComponent(PROJ) + "&t=" + Date.now(), {cache:"no-store"})
       .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(rec){
         fromGeoJSON(rec.geojson);
         renderZones(); fitAll();
         say(zones.length
-          ? ("已載入「" + e.proj + "」的 " + zones.length + " 個反應區。")
-          : ("後端尚未設定「" + e.proj + "」的反應區。可直接在地圖上新增後存檔。"));
+          ? ("已載入「" + PROJ + "」的 " + zones.length + " 個反應區。")
+          : ("「" + PROJ + "」尚未設定反應區。按「＋ 新增區域」在地圖上畫，畫完記得儲存。"));
       })
       .catch(function(err){ say("載入失敗：" + err.message); });
-  });
+  }
 
   $("#btnSave").addEventListener("click", function(){
-    var e = endpoint(); if(!e) return;
+    if(!PROJ) return;
     var gj = toGeoJSON();
     say("儲存中…（" + gj.features.length + " 個區域）");
-    fetch(e.base + "/api/zones", {
+    fetch("/api/zones", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ project: e.proj, geojson: gj })
+      body: JSON.stringify({ project: PROJ, geojson: gj })
     })
       .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function(res){
-        say("✓ 已存到後端：「" + e.proj + "」共 " + res.count + " 個反應區。手機下一次收到「開始」指令時就會取用。");
+        say("✓ 已儲存「" + PROJ + "」共 " + res.count + " 個反應區。手機端下次載入本專案時取用。");
       })
       .catch(function(err){ say("儲存失敗：" + err.message); });
   });
 
   renderZones();
   updateTools();
+  if(PROJ){
+    $("#projChip").textContent = PROJ;
+    $("#backLink").href = "project.html?id=" + encodeURIComponent(PROJ) + "#zones";
+    loadZones();
+  }else{
+    $("#projChip").textContent = "未指定專案";
+    $("#btnSave").disabled = true;
+    say("網址缺少專案代號。請自專案樞紐的「範圍」站進入。");
+  }
 })();
 </script>
 </body>

@@ -22,7 +22,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6}
 a{color:var(--forest)}
-.wrap{max-width:920px;margin:0 auto;padding:20px 16px 64px}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 48px}
 
 .back{font-size:.85rem;text-decoration:none}
 .back:hover{text-decoration:underline}
@@ -77,6 +77,9 @@ button.ghost:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
 
 .banner{background:#fff;border:1px solid var(--clay);color:var(--clay);border-radius:8px;
   padding:10px 14px;font-size:.85rem;margin-bottom:18px;display:none}
+
+footer.transition{margin-top:22px;font-size:.75rem;color:var(--moss)}
+footer.transition a{color:var(--moss)}
 @media (max-width:560px){.formrow{grid-template-columns:1fr}}
 </style>
 </head>
@@ -100,8 +103,7 @@ button.ghost:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
   <button class="station" role="tab" id="tab-settings" aria-selected="true"  data-panel="settings"><span class="n">1</span>設定</button>
   <button class="station" role="tab" id="tab-zones"    aria-selected="false" data-panel="zones"><span class="n">2</span>範圍</button>
   <button class="station" role="tab" id="tab-survey"   aria-selected="false" data-panel="survey"><span class="n">3</span>問卷</button>
-  <button class="station" role="tab" id="tab-run"      aria-selected="false" data-panel="run"><span class="n">4</span>執行</button>
-  <button class="station" role="tab" id="tab-data"     aria-selected="false" data-panel="data"><span class="n">5</span>資料</button>
+  <button class="station" role="tab" id="tab-data"     aria-selected="false" data-panel="data"><span class="n">4</span>資料</button>
 </div>
 
 <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
@@ -138,27 +140,25 @@ button.ghost:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
 
 <section class="panel" id="panel-zones" role="tabpanel" aria-labelledby="tab-zones" hidden>
   <h2>反應區範圍</h2>
-  <p class="desc">在地圖上畫定不規則多邊形反應區。受測者走入區內時，手機自動擷取當下生理與環境資料並跳出現場問卷；走出區外則作廢未完成的問卷。</p>
+  <p class="desc">在地圖上畫定不規則多邊形反應區。受測者走入區內時，手機自動擷取當下生理與環境資料並跳出現場問卷；走出區外則作廢未完成的問卷。畫區時匯入讀地站的基地資料作為底圖參考，建置中。</p>
   <a class="open" id="openZones" href="#">開啟範圍設定</a>
 </section>
 
 <section class="panel" id="panel-survey" role="tabpanel" aria-labelledby="tab-survey" hidden>
   <h2>問卷設計</h2>
-  <p class="desc">設計入組問卷與現場 EMA 問卷，支援多語系與五種題型。題目與選項的代號是跨國合併的欄位名，請用英數短碼。問卷觸發方式（範圍、定時或兩者）之後將於此站設定。</p>
+  <p class="desc">上傳現成問卷（PDF 或 Word），AI 解析為題目清單並產生多語系譯文草稿；選定量尺範圍、補上開放填答即可完成。入組問卷以範本一鍵套用。問卷觸發方式（範圍、定時或兩者）也在此站設定。</p>
   <a class="open" id="openSurvey" href="#">開啟問卷設計</a>
 </section>
 
-<section class="panel" id="panel-run" role="tabpanel" aria-labelledby="tab-run" hidden>
-  <h2>執行</h2>
-  <p class="desc">受測者日常以手機上的「開始走測」自行啟動。此處的控制面板保留給研究者遠端代按開始與強制結束。</p>
-  <a class="open" id="openPanel" href="#">開啟控制面板</a>
-</section>
-
 <section class="panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data" hidden>
-  <h2>資料</h2>
-  <p class="desc">檢視各場次的軌跡與心率路線圖、匯出 Excel。場次上傳後自動轉存 Google Drive 的機制建置中，完成前可在主控台手動儲存。</p>
+  <h2>資料與交接</h2>
+  <p class="desc">檢視各場次軌跡與心率路線圖、匯出 Excel。場次上傳後自動轉存 Google Drive，建置中；讀人資料包可自此匯出，交接給收斂（分區與動線規劃）站。</p>
   <a class="open" id="openConsole" href="#">開啟資料主控台</a>
 </section>
+
+<footer class="transition">
+  過渡期：現行 App 仍以<a id="openPanel" href="#">舊控制面板</a>遠端啟動；手機端「開始走測」上線後，該面板退役。
+</footer>
 
 </div>
 <script>
@@ -184,7 +184,7 @@ function selectTab(name){
 }
 tabs.forEach(t=>t.addEventListener("click", ()=>selectTab(t.dataset.panel)));
 const initTab = (location.hash||"").replace("#","");
-selectTab(["settings","zones","survey","run","data"].includes(initTab) ? initTab : "settings");
+selectTab(["settings","zones","survey","data"].includes(initTab) ? initTab : "settings");
 
 /* ── 載入專案 ── */
 async function load(){
@@ -196,8 +196,8 @@ async function load(){
   const q = encodeURIComponent(pid);
   $("openZones").href   = "zones.html?project="+q;
   $("openSurvey").href  = "survey.html?project="+q;
-  $("openPanel").href   = "panel.html?project="+q;
   $("openConsole").href = "console.html?project="+q;
+  $("openPanel").href   = "panel.html?project="+q;
   try{
     const res = await fetch(API+"?id="+q, {cache:"no-store"});
     const data = await res.json();

@@ -22,8 +22,9 @@
   .lbl{font-size:12px;letter-spacing:.5px;color:var(--clay);margin:0 0 3px;}
   .bar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0;}
   .fld{flex:1;min-width:170px;}
-  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  input[type=text],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
     background:var(--paper);font-size:14.5px;font-family:inherit;color:var(--ink);}
+  textarea{resize:vertical;margin:6px 0;}
   .btn{padding:9px 15px;border:1px solid var(--moss-deep);background:var(--moss);color:#fff;
     border-radius:8px;font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;}
   .btn:hover{background:var(--moss-deep);}
@@ -31,6 +32,7 @@
   .btn.ghost:hover{background:#f1ece0;}
   .btn.warn{background:var(--clay);border-color:#96543a;}
   .btn.sm{padding:5px 10px;font-size:12.5px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
   .note{background:#fff8ee;border:1px solid #ecd9bf;border-left:4px solid var(--clay);
     border-radius:9px;padding:10px 13px;margin:10px 0;font-size:14px;}
   .langpick{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--paper);
@@ -53,21 +55,25 @@
   .meta{font-size:12px;color:var(--soft);margin-top:6px;}
   .empty{color:var(--soft);font-size:14px;padding:14px;text-align:center;border:1px dashed var(--line);border-radius:11px;background:var(--paper);}
   .chk{margin-right:5px;}
-  .dragging{opacity:.4;}
   .tmpl{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px;}
+  .upload{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin:8px 0;}
+  .backlink{color:var(--moss-deep);text-decoration:none;font-size:14px;}
+  .backlink:hover{text-decoration:underline;}
+  .chip{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--moss-deep);
+    border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 10px;font-size:14px;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>HEALS<span class="zh">問卷設計</span></h1>
-  <p class="sub">為每個專案設計問卷。<b>入組</b>：受測者第一次用 App 填一次（基本資料、email）。<b>現場（EMA）</b>：走進反應區當下每次填。多語系：手機依系統語言顯示，答案落在同一欄位可跨國合併。設定存後端，手機收到「開始」時自動取用。</p>
+  <p class="sub">為每個專案設計兩份問卷。<b>入組</b>：受測者第一次用 App 填一次（基本資料、email），以範本一鍵套用。<b>現場（EMA）</b>：走進反應區當下每次填，可上傳現成問卷由 AI 解析為題目並產生多語系譯文草稿。手機依系統語言顯示，答案落在同一欄位可跨國合併。</p>
   <div class="rule"></div>
 
-  <div class="bar">
-    <div class="fld"><div class="lbl">後端網址</div><input type="text" id="beBase" value="https://psycho-physiology.healsdesign.org"></div>
-    <div class="fld"><div class="lbl">專案名稱（與面板一致）</div><input type="text" id="beProj" placeholder="例如：aa"></div>
-    <button class="btn ghost" id="btnLoad">從後端載入</button>
-    <button class="btn" id="btnSave">存到後端</button>
+  <div class="bar" style="align-items:center">
+    <a class="backlink" id="backLink" href="projects.html">← 返回專案</a>
+    <span class="chip" id="projChip">—</span>
+    <span style="flex:1"></span>
+    <button class="btn" id="btnSave">儲存問卷</button>
   </div>
   <div class="note" id="note" style="display:none"></div>
 
@@ -77,6 +83,16 @@
     <span style="margin-left:auto"></span>
     <span class="lbl" style="margin:0">預設語言</span>
     <select id="defaultLang" style="width:auto"></select>
+  </div>
+
+  <div class="langpick">
+    <span class="lbl" style="margin:0">問卷觸發方式</span>
+    <label><input type="radio" class="chk" name="trig" value="zone" checked>範圍（走進反應區）</label>
+    <label><input type="radio" class="chk" name="trig" value="timed">定時</label>
+    <label><input type="radio" class="chk" name="trig" value="both">兩者</label>
+    <span id="trigIvWrap" style="display:none">每
+      <input type="number" id="trigIv" value="15" min="1" style="width:70px;display:inline-block"> 分鐘一次
+    </span>
   </div>
 
   <h2>入組問卷（填一次）</h2>
@@ -96,13 +112,36 @@
 
   <h2>現場問卷 · EMA（每次填）</h2>
   <div class="formsec" id="secEma">
+
+    <div class="upload">
+      <div class="lbl">由檔案建立（PDF／Word .docx／純文字）</div>
+      <div class="bar" style="align-items:center;margin:6px 0 0">
+        <input type="file" id="file" accept=".pdf,.docx,.txt" style="display:none">
+        <button class="btn ghost sm" id="btnFile">選擇問卷檔</button>
+        <span class="meta" id="fileStatus" style="margin:0">或直接把問卷文字貼進下方框。</span>
+      </div>
+      <textarea id="rawText" rows="6" placeholder="問卷原文會出現在這裡，可先修剪再解析。"></textarea>
+      <div class="bar" style="align-items:center;margin:0">
+        <button class="btn sm" id="btnParse">以 AI 解析為題目</button>
+        <span class="meta" style="margin:0">AI 抽出題項並產生所選語言的譯文草稿；標準化量表正式收案請以官方譯本覆核。掃描影像 PDF 抽不出文字，請先 OCR；舊版 .doc 請先另存為 .docx。</span>
+      </div>
+    </div>
+
+    <div class="upload">
+      <div class="lbl">量尺設定（範圍套用到全部量尺題）</div>
+      <div class="bar" style="margin:6px 0 2px">
+        <div><div class="sub2" style="margin-top:0">最小值</div><input type="number" id="scMin" value="1" style="max-width:110px"></div>
+        <div><div class="sub2" style="margin-top:0">最大值</div><input type="number" id="scMax" value="5" style="max-width:110px"></div>
+      </div>
+      <div class="sub2">預設左端標籤（新題未填時套用）</div>
+      <div class="langgrid" id="scLow"></div>
+      <div class="sub2">預設右端標籤（新題未填時套用）</div>
+      <div class="langgrid" id="scHigh"></div>
+    </div>
+
     <div class="tmpl">
       <button class="btn ghost sm" data-tmpl="ema">套用 EMA 五題範本</button>
-      <button class="btn sm" data-add="ema" data-type="scale">＋量尺</button>
-      <button class="btn sm" data-add="ema" data-type="single">＋單選</button>
-      <button class="btn sm" data-add="ema" data-type="multi">＋複選</button>
-      <button class="btn sm" data-add="ema" data-type="text">＋開放填答</button>
-      <button class="btn sm" data-add="ema" data-type="email">＋Email</button>
+      <button class="btn sm" id="btnAddOpen">＋開放填答</button>
     </div>
     <div class="sub2">標題（各語言）</div>
     <div class="langgrid" id="titleEma"></div>
@@ -110,6 +149,8 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -117,6 +158,7 @@
   var LANG_NAMES = {zh:"中文", en:"English", ja:"日本語", ko:"한국어", es:"Español", fr:"Français", de:"Deutsch"};
   var ALL_LANGS = ["zh","en","ja","ko","es","fr","de"];
   var TYPE_NAMES = {scale:"量尺", single:"單選", multi:"複選", text:"開放填答", email:"Email"};
+  var PROJ = (new URLSearchParams(location.search).get("project") || "").trim();
 
   // 狀態
   var state = {
@@ -125,6 +167,8 @@
     intake: { title:{}, questions:[] },
     ema:    { title:{}, questions:[] }
   };
+  var emaScale = { min:1, max:5, low:{}, high:{} };   // 全域量尺：範圍套用全部量尺題；標籤作為新題預設
+  var trigger  = { mode:"zone", intervalMinutes:15 };
   var seqCounter = 0;
   function uid(){ seqCounter++; return "row"+seqCounter; }
 
@@ -152,6 +196,24 @@
   }
   $("#defaultLang").addEventListener("change", function(e){ state.defaultLang = e.target.value; });
 
+  /* ---- 觸發方式 ---- */
+  function renderTrigger(){
+    document.querySelectorAll('input[name="trig"]').forEach(function(r){
+      r.checked = (r.value === trigger.mode);
+    });
+    $("#trigIv").value = trigger.intervalMinutes || 15;
+    $("#trigIvWrap").style.display = (trigger.mode==="zone") ? "none" : "inline";
+  }
+  document.querySelectorAll('input[name="trig"]').forEach(function(r){
+    r.addEventListener("change", function(){
+      if(r.checked){ trigger.mode = r.value; renderTrigger(); }
+    });
+  });
+  $("#trigIv").addEventListener("input", function(){
+    var v = parseInt($("#trigIv").value, 10);
+    trigger.intervalMinutes = (isNaN(v)||v<1) ? 15 : v;
+  });
+
   /* ---- 語言並排輸入框（一個 loc 物件）---- */
   function locGrid(locObj, onInput, placeholderKey){
     var g = document.createElement("div"); g.className="langgrid";
@@ -166,14 +228,28 @@
     });
     return g;
   }
-
-  /* ---- 標題 ---- */
-  function renderTitle(which){
-    var host = $(which==="intake" ? "#titleIntake" : "#titleEma");
-    host.innerHTML = "";
-    var g = locGrid(state[which].title, null, "問卷標題");
-    while(g.firstChild) host.appendChild(g.firstChild);
+  function fillHost(hostSel, grid){
+    var host = $(hostSel); host.innerHTML = "";
+    while(grid.firstChild) host.appendChild(grid.firstChild);
   }
+
+  /* ---- 標題與全域量尺 ---- */
+  function renderTitle(which){
+    fillHost(which==="intake" ? "#titleIntake" : "#titleEma",
+             locGrid(state[which].title, null, "問卷標題"));
+  }
+  function renderScaleCfg(){
+    $("#scMin").value = emaScale.min;
+    $("#scMax").value = emaScale.max;
+    fillHost("#scLow",  locGrid(emaScale.low,  null, "如：完全沒有"));
+    fillHost("#scHigh", locGrid(emaScale.high, null, "如：非常強烈"));
+  }
+  $("#scMin").addEventListener("input", function(){
+    var v = parseInt($("#scMin").value,10); emaScale.min = isNaN(v)?1:v;
+  });
+  $("#scMax").addEventListener("input", function(){
+    var v = parseInt($("#scMax").value,10); emaScale.max = isNaN(v)?5:v;
+  });
 
   /* ---- 題目卡 ---- */
   function renderQuestions(which){
@@ -181,29 +257,18 @@
     host.innerHTML = "";
     var list = state[which].questions;
     if(!list.length){
-      host.innerHTML = '<div class="empty">尚無題目。用上方按鈕新增，或套用範本。</div>';
+      host.innerHTML = '<div class="empty">'+(which==="intake"
+        ? "尚無題目。套用範本，或用上方按鈕新增。"
+        : "尚無題目。上傳問卷檔解析、套用範本，或加開放填答。")+'</div>';
       return;
     }
-    list.forEach(function(q, i){
-      host.appendChild(buildQCard(which, q, i));
-    });
+    list.forEach(function(q, i){ host.appendChild(buildQCard(which, q, i)); });
   }
 
   function buildQCard(which, q, i){
     var card = document.createElement("div");
-    card.className = "qcard"; card.draggable = true; card.dataset.uid = q._uid;
+    card.className = "qcard";
 
-    // 拖曳排序
-    card.addEventListener("dragstart", function(e){ card.classList.add("dragging"); e.dataTransfer.setData("text/plain", q._uid); });
-    card.addEventListener("dragend", function(){ card.classList.remove("dragging"); });
-    card.addEventListener("dragover", function(e){ e.preventDefault(); });
-    card.addEventListener("drop", function(e){
-      e.preventDefault();
-      var from = e.dataTransfer.getData("text/plain");
-      reorder(which, from, q._uid);
-    });
-
-    // 標頭：序號、題型、id、必填、刪除
     var head = document.createElement("div"); head.className="qhead";
     head.innerHTML = '<span class="idx">'+(i+1)+'.</span>';
 
@@ -231,17 +296,18 @@
 
     card.appendChild(head);
 
-    // 題目文字（多語言）
     card.appendChild(sub("題目文字"));
     card.appendChild(locGrid(q.text, null, "題目"));
 
-    // 題型專屬
     if(q.type==="scale"){
-      var srow = document.createElement("div"); srow.className="bar"; srow.style.margin="8px 0 2px";
-      var minI=numInput(q.min,1,function(v){q.min=v;}), maxI=numInput(q.max,5,function(v){q.max=v;});
-      srow.appendChild(labelWrap("最小值", minI));
-      srow.appendChild(labelWrap("最大值", maxI));
-      card.appendChild(srow);
+      if(which==="ema"){
+        card.appendChild(metaLine("量尺範圍 "+emaScale.min+"–"+emaScale.max+"（依上方全域設定，儲存時套用）"));
+      }else{
+        var srow = document.createElement("div"); srow.className="bar"; srow.style.margin="8px 0 2px";
+        srow.appendChild(labelWrap("最小值", numInput(q.min,1,function(v){q.min=v;})));
+        srow.appendChild(labelWrap("最大值", numInput(q.max,5,function(v){q.max=v;})));
+        card.appendChild(srow);
+      }
       card.appendChild(sub("左端標籤（最小值說明）"));
       card.appendChild(locGrid(q.low, null, "如：很差"));
       card.appendChild(sub("右端標籤（最大值說明）"));
@@ -249,8 +315,8 @@
     }
     else if(q.type==="single" || q.type==="multi"){
       card.appendChild(sub("選項（每個選項含各語言標籤；value 留空自動編號）"));
-      var cbox = document.createElement("div"); cbox.dataset.choices="1";
-      q.choices.forEach(function(c, ci){ cbox.appendChild(buildChoice(q, c, ci)); });
+      var cbox = document.createElement("div");
+      q.choices.forEach(function(c){ cbox.appendChild(buildChoice(which, q, c)); });
       card.appendChild(cbox);
       var addC = document.createElement("button"); addC.className="btn ghost sm"; addC.textContent="＋新增選項";
       addC.style.marginTop="6px";
@@ -273,7 +339,7 @@
     return card;
   }
 
-  function buildChoice(q, c, ci){
+  function buildChoice(which, q, c){
     var box = document.createElement("div"); box.className="choice";
     var crow = document.createElement("div"); crow.className="crow";
     var v = document.createElement("input"); v.type="text"; v.value=c.value||""; v.placeholder="value（英數，可留空）";
@@ -283,8 +349,6 @@
     var del = document.createElement("button"); del.className="btn warn sm"; del.textContent="刪選項";
     del.addEventListener("click", function(){
       q.choices = q.choices.filter(function(x){return x!==c;});
-      // 重繪所在題
-      var which = state.intake.questions.indexOf(q)>=0 ? "intake":"ema";
       renderQuestions(which);
     });
     crow.appendChild(del);
@@ -302,8 +366,10 @@
     i.addEventListener("input", function(){ var n=parseInt(i.value,10); on(isNaN(n)?def:n); });
     return i;
   }
+  function copyLoc(o){ var c={}; Object.keys(o||{}).forEach(function(k){ c[k]=o[k]; }); return c; }
+  function locEmpty(o){ return !o || !Object.keys(o).some(function(k){ return String(o[k]||"").trim(); }); }
 
-  /* ---- 題目增刪改型排序 ---- */
+  /* ---- 題目增刪改型 ---- */
   function newQ(type){
     var q = { _uid: uid(), id:"", type:type, text:{}, required:false };
     if(type==="scale"){ q.min=1; q.max=5; q.low={}; q.high={}; }
@@ -317,16 +383,8 @@
     var arr=state[which].questions, idx=arr.findIndex(function(q){return q._uid===u;});
     if(idx<0)return;
     var old=arr[idx], nq=newQ(type);
-    nq._uid=old._uid; nq.id=old.id; nq.text=old.text; nq.required=old.required;   // 保留共通欄位
+    nq._uid=old._uid; nq.id=old.id; nq.text=old.text; nq.required=old.required;
     arr[idx]=nq; renderQuestions(which);
-  }
-  function reorder(which, fromU, toU){
-    if(fromU===toU)return;
-    var arr=state[which].questions;
-    var fi=arr.findIndex(function(q){return q._uid===fromU;});
-    var ti=arr.findIndex(function(q){return q._uid===toU;});
-    if(fi<0||ti<0)return;
-    var m=arr.splice(fi,1)[0]; arr.splice(ti,0,m); renderQuestions(which);
   }
 
   /* ---- 範本 ---- */
@@ -376,19 +434,105 @@
   function applyTemplate(which){
     if(state[which].questions.length && !confirm("這會取代「"+(which==="intake"?"入組":"EMA")+"」目前的內容，確定套用範本？")) return;
     var t = which==="intake" ? tmplIntake() : tmplEma();
-    // 確保範本語言都在支援清單裡
     ["zh","en","ja"].forEach(function(l){ if(state.languages.indexOf(l)<0) state.languages.push(l); });
     state[which] = t;
     renderLangPicker(); renderAll();
   }
 
+  /* ---- 檔案抽字 ---- */
+  if(window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  function extractPDF(file){
+    return file.arrayBuffer().then(function(buf){
+      return pdfjsLib.getDocument({data:buf}).promise;
+    }).then(function(pdf){
+      var chain = Promise.resolve([]);
+      for(var p=1; p<=pdf.numPages; p++){
+        (function(pn){
+          chain = chain.then(function(acc){
+            return pdf.getPage(pn).then(function(page){
+              return page.getTextContent();
+            }).then(function(tc){
+              acc.push(tc.items.map(function(it){ return it.str; }).join(" "));
+              return acc;
+            });
+          });
+        })(p);
+      }
+      return chain.then(function(acc){ return acc.join("\n\n"); });
+    });
+  }
+  function extractDOCX(file){
+    return file.arrayBuffer().then(function(buf){
+      return mammoth.extractRawText({arrayBuffer: buf});
+    }).then(function(res){ return res.value || ""; });
+  }
+  $("#btnFile").addEventListener("click", function(){ $("#file").click(); });
+  $("#file").addEventListener("change", function(){
+    var f = $("#file").files[0];
+    if(!f) return;
+    var ext = (f.name.split(".").pop()||"").toLowerCase();
+    $("#fileStatus").textContent = "讀取中：" + f.name + " …";
+    var p;
+    if(ext==="pdf" && window.pdfjsLib) p = extractPDF(f);
+    else if(ext==="docx" && window.mammoth) p = extractDOCX(f);
+    else if(ext==="txt") p = f.text();
+    else p = Promise.reject(new Error("不支援的檔案格式（限 PDF／.docx／.txt）"));
+    p.then(function(text){
+      text = String(text||"").trim();
+      $("#rawText").value = text;
+      if(ext==="pdf" && text.length < 30){
+        $("#fileStatus").textContent = f.name + "：幾乎沒有可選取文字，可能是掃描影像，請先 OCR。";
+      }else{
+        $("#fileStatus").textContent = f.name + " · 已抽出 " + text.length + " 字，可修剪後解析。";
+      }
+    }).catch(function(err){
+      $("#fileStatus").textContent = "讀取失敗：" + err.message;
+    });
+    $("#file").value = "";
+  });
+
+  /* ---- AI 解析 ---- */
+  $("#btnParse").addEventListener("click", function(){
+    var text = $("#rawText").value.trim();
+    if(!text){ say("請先選擇問卷檔，或把問卷文字貼進文字框。"); return; }
+    if(state.ema.questions.length &&
+       !confirm("解析結果會取代目前的 EMA 題目，確定繼續？")) return;
+    var btn = $("#btnParse");
+    btn.disabled = true; say("AI 解析中，約需十餘秒…");
+    fetch("/api/ai-survey", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ text:text, languages:state.languages, defaultLang:state.defaultLang })
+    })
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        if(!res.ok || !res.d || !Array.isArray(res.d.questions)) throw new Error((res.d && res.d.error) || "解析失敗");
+        state.ema.questions = res.d.questions.map(function(item){
+          return Object.assign(newQ("scale"), {
+            id: item.id || "",
+            text: item.text || {},
+            low: copyLoc(emaScale.low),
+            high: copyLoc(emaScale.high)
+          });
+        });
+        if(res.d.title && locEmpty(state.ema.title)) state.ema.title = res.d.title;
+        renderAll();
+        say("已解析出 " + state.ema.questions.length + " 題量尺題。譯文為 AI 草稿，正式收案請覆核；確認量尺範圍與兩端標籤後儲存。");
+      })
+      .catch(function(err){ say("解析失敗：" + err.message); })
+      .finally(function(){ btn.disabled = false; });
+  });
+
   /* ---- 全部重繪 ---- */
   function renderAll(){
-    // 確保每題有 _uid
     ["intake","ema"].forEach(function(w){
       state[w].questions.forEach(function(q){ if(!q._uid) q._uid=uid(); });
       renderTitle(w); renderQuestions(w);
     });
+    renderScaleCfg();
+    renderTrigger();
   }
 
   /* ---- 按鈕綁定 ---- */
@@ -398,57 +542,113 @@
   document.querySelectorAll("[data-tmpl]").forEach(function(b){
     b.addEventListener("click", function(){ applyTemplate(b.dataset.tmpl); });
   });
+  $("#btnAddOpen").addEventListener("click", function(){
+    var q = newQ("text"); q.multiline = true;
+    state.ema.questions.push(q); renderQuestions("ema");
+  });
 
   /* ---- 後端 ---- */
   function say(msg){ var n=$("#note"); n.style.display="block"; n.textContent=msg; }
-  function endpoint(){
-    var b=$("#beBase").value.trim().replace(/\/+$/,""), p=$("#beProj").value.trim();
-    if(!b||!p){ alert("請填後端網址與專案名稱。"); return null; }
-    return { base:b, proj:p };
-  }
-  // 送出前：去掉 _uid（前端內部用）
   function serializeForm(f){
     return { title:f.title, questions:f.questions.map(function(q){
       var c=Object.assign({},q); delete c._uid; return c;
     })};
   }
+  function serializeEma(){
+    var f = serializeForm(state.ema);
+    f.questions = f.questions.map(function(q){
+      if(q.type!=="scale") return q;
+      var c = Object.assign({}, q, { min:emaScale.min, max:emaScale.max });
+      if(locEmpty(c.low))  c.low  = copyLoc(emaScale.low);
+      if(locEmpty(c.high)) c.high = copyLoc(emaScale.high);
+      return c;
+    });
+    return f;
+  }
 
-  $("#btnLoad").addEventListener("click", function(){
-    var e=endpoint(); if(!e)return; say("載入中…");
-    fetch(e.base+"/api/survey?project="+encodeURIComponent(e.proj)+"&t="+Date.now(),{cache:"no-store"})
-      .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
-      .then(function(rec){
+  function loadAll(){
+    say("載入中…");
+    var pSurvey = fetch("/api/survey?project="+encodeURIComponent(PROJ)+"&t="+Date.now(),{cache:"no-store"})
+      .then(function(r){
+        if(r.status===404) return null;
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        return r.json();
+      });
+    var pProj = fetch("/api/projects?id="+encodeURIComponent(PROJ),{cache:"no-store"})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+
+    Promise.all([pSurvey, pProj]).then(function(res){
+      var rec = res[0], proj = res[1];
+      if(rec){
         state.languages = (rec.languages&&rec.languages.length)? rec.languages : ["zh","en"];
         state.defaultLang = rec.defaultLang || state.languages[0];
         state.intake = rec.intake || {title:{},questions:[]};
         state.ema = rec.ema || {title:{},questions:[]};
-        renderLangPicker(); renderAll();
-        say("已載入「"+e.proj+"」：入組 "+state.intake.questions.length+" 題、EMA "+state.ema.questions.length+" 題。");
-      })
-      .catch(function(err){ say("載入失敗："+err.message); });
-  });
+        var firstScale = (state.ema.questions||[]).find(function(q){ return q.type==="scale"; });
+        if(firstScale){
+          emaScale.min = (firstScale.min==null)?1:firstScale.min;
+          emaScale.max = (firstScale.max==null)?5:firstScale.max;
+        }
+      }
+      if(proj && proj.project && proj.project.trigger){
+        var t = proj.project.trigger;
+        if(["zone","timed","both"].indexOf(t.mode)>=0) trigger.mode = t.mode;
+        if(t.intervalMinutes>0) trigger.intervalMinutes = t.intervalMinutes;
+      }
+      renderLangPicker(); renderAll();
+      say(rec
+        ? ("已載入「"+PROJ+"」：入組 "+state.intake.questions.length+" 題、EMA "+state.ema.questions.length+" 題。")
+        : ("「"+PROJ+"」尚未設定問卷。套用入組範本，並上傳檔案解析或套用 EMA 範本。"));
+    }).catch(function(err){ say("載入失敗："+err.message); });
+  }
 
   $("#btnSave").addEventListener("click", function(){
-    var e=endpoint(); if(!e)return; say("儲存中…");
+    if(!PROJ) return;
+    if(emaScale.min >= emaScale.max){ say("量尺設定有誤：最小值必須小於最大值。"); return; }
+    var btn=$("#btnSave"); btn.disabled=true; say("儲存中…");
     var payload = {
-      project: e.proj,
+      project: PROJ,
       languages: state.languages,
       defaultLang: state.defaultLang,
       intake: serializeForm(state.intake),
-      ema: serializeForm(state.ema)
+      ema: serializeEma()
     };
-    fetch(e.base+"/api/survey", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)})
+    fetch("/api/survey", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)})
       .then(function(r){ if(!r.ok)throw new Error("HTTP "+r.status); return r.json(); })
       .then(function(res){
-        say("✓ 已存到後端：「"+e.proj+"」入組 "+res.counts.intake+" 題、EMA "+res.counts.ema+" 題。手機下次收到「開始」時就會取用。"
-          + "（不合規的題目——如題目空白、選項少於兩個——會被自動略過。）");
+        var c = res.counts || {};
+        return fetch("/api/projects", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ id: PROJ, trigger: {
+            mode: trigger.mode,
+            intervalMinutes: (trigger.mode==="zone") ? undefined : trigger.intervalMinutes
+          }})
+        }).then(function(r2){
+          var trigNote = r2.ok ? "" : "（觸發方式未存成功，請再按一次儲存）";
+          say("✓ 已儲存「"+PROJ+"」：入組 "+(c.intake!=null?c.intake:state.intake.questions.length)
+            + " 題、EMA "+(c.ema!=null?c.ema:state.ema.questions.length)
+            + " 題。手機端下次載入本專案時取用。"
+            + "（不合規的題目——如題目空白、選項少於兩個——會被自動略過。）" + trigNote);
+        });
       })
-      .catch(function(err){ say("儲存失敗："+err.message); });
+      .catch(function(err){ say("儲存失敗："+err.message); })
+      .finally(function(){ btn.disabled=false; });
   });
 
   // 初始化
   renderLangPicker();
   renderAll();
+  if(PROJ){
+    $("#projChip").textContent = PROJ;
+    $("#backLink").href = "project.html?id=" + encodeURIComponent(PROJ) + "#survey";
+    loadAll();
+  }else{
+    $("#projChip").textContent = "未指定專案";
+    $("#btnSave").disabled = true;
+    $("#btnParse").disabled = true;
+    say("網址缺少專案代號。請自專案樞紐的「問卷」站進入。");
+  }
 })();
 </script>
 </body>
