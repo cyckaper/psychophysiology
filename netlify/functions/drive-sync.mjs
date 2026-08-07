@@ -60,7 +60,7 @@ async function driveFindFolder(token, name, parentId) {
   const r = await fetch("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=files(id)&pageSize=1", {
     headers: { Authorization: "Bearer " + token },
   });
-  if (!r.ok) throw new Error("查資料夾失敗 HTTP " + r.status);
+  if (!r.ok) throw new Error("查資料夾失敗 HTTP " + r.status + "：" + (await r.text()).slice(0, 200));
   const d = await r.json();
   return (d.files && d.files[0] && d.files[0].id) || null;
 }
@@ -160,12 +160,30 @@ export default async (req) => {
   try { token = await getAccessToken(sa); }
   catch (e) { return json({ error: String(e.message || e) }, 502); }
 
+  // 開工前先驗證根資料夾：ID 錯、未分享、或 Drive API 未啟用都在這裡一次講清楚
+  const chk = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(rootId) + "?fields=id,name", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!chk.ok) {
+    const t = (await chk.text().catch(() => "")).slice(0, 300);
+    return json({
+      error: "根資料夾檢查失敗 HTTP " + chk.status + "：" + t,
+      hint: "404＝GDRIVE_FOLDER_ID 不對（要抄進入資料夾後網址列 folders/ 後那串）或未分享給服務帳戶；403 且內文含 accessNotConfigured＝要到 Cloud 專案「API 和服務 → 程式庫」啟用 Google Drive API。",
+    }, 502);
+  }
+
   const folderCache = new Map();
-  const synced = [], failed = [];
+  const synced = [], failed = [], skipped = [];
 
   for (const key of pending) {
     if (synced.length >= MAX_PER_RUN) break;
     if (Date.now() - started > TIME_BUDGET_MS) break;
+    if (!/^[^/]+\/[^/]+\/[^/]+$/.test(key)) {
+      // 早期版本殘留的畸形鍵（如「aa/」）：標記略過，永不重試
+      await logStore.setJSON(key, { skipped: "malformed", at: Date.now() });
+      skipped.push(key);
+      continue;
+    }
     try {
       const rec = await dataStore.get(key, { type: "json" });
       if (!rec) { failed.push({ key, error: "記錄讀取為空" }); continue; }
@@ -204,7 +222,8 @@ export default async (req) => {
     scanned: blobs.length,
     pending: pending.length,
     synced,
-    remaining: pending.length - synced.length,
+    skipped,
+    remaining: pending.length - synced.length - skipped.length,
     failed,
   });
 };
