@@ -40,13 +40,14 @@ export default async (req) => {
     const physiology  = Array.isArray(body.physiology)  ? body.physiology  : [];
     const location    = Array.isArray(body.location)    ? body.location    : [];
     const environment = Array.isArray(body.environment) ? body.environment : [];
+    const ema         = Array.isArray(body.ema)         ? body.ema         : [];   // 現場問卷作答（舊版 App 未送 → 空陣列）
 
     const key = `${project}/${code}/${session}`;
     const intake = (body.intake && typeof body.intake === "object") ? body.intake : null;
     const record = {
       project, code, session, uploadedAt: Date.now(),
-      counts: { physiology: physiology.length, location: location.length, environment: environment.length },
-      physiology, location, environment,
+      counts: { physiology: physiology.length, location: location.length, environment: environment.length, ema: ema.length },
+      physiology, location, environment, ema,
       intake,                                    // 受測者入組基本資料（可能為 null）
     };
     await store.setJSON(key, record);   // 單一寫入

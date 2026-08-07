@@ -1,0 +1,212 @@
+// drive-sync.mjs — 場次自動封存 Google Drive /api/drive-sync
+// 掃描 heals-data 全部場次，尚未推送者以服務帳戶打包上傳：
+//   Drive 根資料夾（GDRIVE_FOLDER_ID）／專案代號／編號_時間_場次短碼／
+//     問卷.json（intake 含 email，＋ema 作答；兩者皆無則不建此檔）
+//     生理.json、軌跡.json、環境.json（空流略過）
+// 已推送清單記在 store: heals-drive-log（key 與場次相同），天生冪等、可重試。
+// 由 drive-sync-cron.mjs 每 5 分鐘呼叫；也可直接開 /api/drive-sync 手動觸發驗證。
+// 需要環境變數：GDRIVE_SA_KEY（服務帳戶金鑰 JSON 全文）、GDRIVE_FOLDER_ID（共享資料夾 ID）。
+import { getStore } from "@netlify/blobs";
+import { createSign } from "node:crypto";
+
+const MAX_PER_RUN = 3;        // 每輪最多推送場次數（控制在函式時限內）
+const TIME_BUDGET_MS = 7000;  // 逾時保護
+
+const HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Cache-Control": "no-store",
+  "Content-Type": "application/json; charset=utf-8",
+};
+const json = (obj, status = 200) =>
+  new Response(JSON.stringify(obj), { status, headers: HEADERS });
+
+/* ---- 服務帳戶 → access token（RS256 JWT，無外部依賴） ---- */
+function b64url(input) {
+  return Buffer.from(input).toString("base64")
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function getAccessToken(sa) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claims = b64url(JSON.stringify({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/drive",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  }));
+  const input = header + "." + claims;
+  const sig = b64url(createSign("RSA-SHA256").update(input).sign(sa.private_key));
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=" + encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer")
+        + "&assertion=" + encodeURIComponent(input + "." + sig),
+  });
+  if (!resp.ok) throw new Error("取 token 失敗 HTTP " + resp.status + "：" + (await resp.text()).slice(0, 200));
+  const d = await resp.json();
+  if (!d.access_token) throw new Error("token 回應缺 access_token");
+  return d.access_token;
+}
+
+/* ---- Drive 基本操作 ---- */
+async function driveFindFolder(token, name, parentId) {
+  const q = encodeURIComponent(
+    "name='" + name.replace(/'/g, "\\'") + "'"
+    + " and '" + parentId + "' in parents"
+    + " and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const r = await fetch("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=files(id)&pageSize=1", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!r.ok) throw new Error("查資料夾失敗 HTTP " + r.status);
+  const d = await r.json();
+  return (d.files && d.files[0] && d.files[0].id) || null;
+}
+async function driveCreateFolder(token, name, parentId) {
+  const r = await fetch("https://www.googleapis.com/drive/v3/files?fields=id", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] }),
+  });
+  if (!r.ok) throw new Error("建資料夾失敗 HTTP " + r.status + "：" + (await r.text()).slice(0, 200));
+  return (await r.json()).id;
+}
+async function driveEnsureFolder(token, name, parentId, cache) {
+  const ck = parentId + "/" + name;
+  if (cache.has(ck)) return cache.get(ck);
+  let id = await driveFindFolder(token, name, parentId);
+  if (!id) id = await driveCreateFolder(token, name, parentId);
+  cache.set(ck, id);
+  return id;
+}
+async function driveUploadJSON(token, name, obj, parentId) {
+  const boundary = "heals" + Date.now() + Math.random().toString(36).slice(2, 8);
+  const meta = JSON.stringify({ name, parents: [parentId] });
+  const content = JSON.stringify(obj, null, 1);
+  const body =
+    "--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + meta +
+    "\r\n--" + boundary + "\r\nContent-Type: application/json\r\n\r\n" + content +
+    "\r\n--" + boundary + "--";
+  const r = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "multipart/related; boundary=" + boundary },
+    body,
+  });
+  if (!r.ok) throw new Error("上傳「" + name + "」失敗 HTTP " + r.status + "：" + (await r.text()).slice(0, 200));
+  return (await r.json()).id;
+}
+
+/* ---- 小工具 ---- */
+function tpeStamp(ms) {
+  // Asia/Taipei 的 YYYYMMDD-HHmm
+  const s = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date(ms || Date.now()));
+  return s.replace(/[^\d]/g, "").slice(0, 12).replace(/^(\d{8})(\d{4})$/, "$1-$2");
+}
+function findEmail(obj) {
+  // 深度掃描 intake 物件，抓出第一個像 email 的字串（不依賴特定欄位名）
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const stack = [obj];
+  let guard = 0;
+  while (stack.length && guard++ < 2000) {
+    const cur = stack.pop();
+    if (cur == null) continue;
+    if (typeof cur === "string") { if (re.test(cur.trim())) return cur.trim(); continue; }
+    if (Array.isArray(cur)) { for (const v of cur) stack.push(v); continue; }
+    if (typeof cur === "object") { for (const k of Object.keys(cur)) stack.push(cur[k]); }
+  }
+  return null;
+}
+const sess6 = (s) => { s = String(s || ""); return s.length > 6 ? s.slice(-6) : s; };
+
+/* ---- 主流程 ---- */
+export default async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
+
+  const started = Date.now();
+  const keyRaw = process.env.GDRIVE_SA_KEY;
+  const rootId = process.env.GDRIVE_FOLDER_ID;
+  if (!keyRaw || !rootId) {
+    return json({ error: "尚未設定 GDRIVE_SA_KEY 或 GDRIVE_FOLDER_ID 環境變數" }, 500);
+  }
+  let sa;
+  try { sa = JSON.parse(keyRaw); } catch { return json({ error: "GDRIVE_SA_KEY 不是有效 JSON" }, 500); }
+  if (!sa.client_email || !sa.private_key) {
+    return json({ error: "GDRIVE_SA_KEY 缺 client_email 或 private_key" }, 500);
+  }
+
+  const dataStore = getStore({ name: "heals-data", consistency: "strong" });
+  const logStore  = getStore({ name: "heals-drive-log", consistency: "strong" });
+
+  // 找出尚未推送的場次
+  const { blobs } = await dataStore.list();
+  const pending = [];
+  for (const b of blobs) {
+    let done = null;
+    try { done = await logStore.get(b.key, { type: "json" }); } catch (_) { /* 未推送 */ }
+    if (!done) pending.push(b.key);
+  }
+  pending.sort();   // 穩定順序，先舊後新（key 以專案/編號/場次組成）
+
+  if (!pending.length) {
+    return json({ ok: true, scanned: blobs.length, pending: 0, synced: [], note: "全部場次皆已封存" });
+  }
+
+  let token;
+  try { token = await getAccessToken(sa); }
+  catch (e) { return json({ error: String(e.message || e) }, 502); }
+
+  const folderCache = new Map();
+  const synced = [], failed = [];
+
+  for (const key of pending) {
+    if (synced.length >= MAX_PER_RUN) break;
+    if (Date.now() - started > TIME_BUDGET_MS) break;
+    try {
+      const rec = await dataStore.get(key, { type: "json" });
+      if (!rec) { failed.push({ key, error: "記錄讀取為空" }); continue; }
+
+      const projFolder = await driveEnsureFolder(token, rec.project || key.split("/")[0], rootId, folderCache);
+      const folderName = (rec.code || "NA") + "_" + tpeStamp(rec.uploadedAt) + "_" + sess6(rec.session);
+      const sessFolder = await driveEnsureFolder(token, folderName, projFolder, folderCache);
+
+      const files = [];
+      const ema = Array.isArray(rec.ema) ? rec.ema : [];
+      if (rec.intake || ema.length) {
+        files.push(["問卷.json", {
+          project: rec.project, code: rec.code, session: rec.session,
+          uploadedAt: rec.uploadedAt,
+          email: findEmail(rec.intake),
+          intake: rec.intake || null,
+          ema,
+        }]);
+      }
+      if (Array.isArray(rec.physiology)  && rec.physiology.length)  files.push(["生理.json", rec.physiology]);
+      if (Array.isArray(rec.location)    && rec.location.length)    files.push(["軌跡.json", rec.location]);
+      if (Array.isArray(rec.environment) && rec.environment.length) files.push(["環境.json", rec.environment]);
+
+      for (const [name, obj] of files) {
+        await driveUploadJSON(token, name, obj, sessFolder);
+      }
+      await logStore.setJSON(key, { syncedAt: Date.now(), folder: folderName, files: files.map((f) => f[0]) });
+      synced.push(key);
+    } catch (e) {
+      failed.push({ key, error: String(e.message || e).slice(0, 200) });
+    }
+  }
+
+  return json({
+    ok: true,
+    scanned: blobs.length,
+    pending: pending.length,
+    synced,
+    remaining: pending.length - synced.length,
+    failed,
+  });
+};
+
+export const config = { path: "/api/drive-sync" };
