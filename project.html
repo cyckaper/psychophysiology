@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>專案 — HEALS 生心理研究平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F1E3;
+  --card:#FFFDF7;
+  --ink:#26301F;
+  --forest:#2C5F2D;
+  --moss:#5A6B3E;
+  --clay:#B8694A;
+  --hairline:rgba(44,95,45,.22);
+  --serif:"Noto Serif TC",serif;
+  --sans:"Noto Sans TC",system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--forest)}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 64px}
+
+.back{font-size:.85rem;text-decoration:none}
+.back:hover{text-decoration:underline}
+
+.head{margin:14px 0 20px;border-bottom:2px solid var(--forest);padding-bottom:14px}
+.head .code{font-family:var(--mono);color:var(--forest);font-weight:700;font-size:.95rem;letter-spacing:.02em}
+.head h1{font-family:var(--serif);font-size:1.5rem;line-height:1.35}
+.head .sub{display:flex;gap:10px;align-items:center;margin-top:4px;font-size:.8rem;color:var(--moss);flex-wrap:wrap}
+.stamp{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:.7rem;letter-spacing:.08em}
+.stamp.active{color:var(--forest)}
+.stamp.archived{color:var(--clay)}
+
+.stations{display:flex;gap:0;overflow-x:auto;margin-bottom:22px;-webkit-overflow-scrolling:touch}
+.station{appearance:none;background:none;border:0;border-bottom:2px solid var(--hairline);
+  font:inherit;font-size:.9rem;color:var(--moss);padding:8px 14px 10px;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:7px}
+.station .n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  border:1px solid var(--moss);border-radius:50%;font-family:var(--mono);font-size:.72rem}
+.station[aria-selected="true"]{color:var(--forest);border-bottom-color:var(--forest);font-weight:500}
+.station[aria-selected="true"] .n{background:var(--forest);border-color:var(--forest);color:#fff}
+.station:focus-visible{outline:2px solid var(--forest);outline-offset:-2px}
+
+.panel{background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:20px}
+.panel h2{font-family:var(--serif);font-size:1.1rem;margin-bottom:6px}
+.panel p.desc{color:var(--moss);font-size:.9rem;max-width:560px;margin-bottom:16px}
+.open{display:inline-block;background:var(--forest);color:#fff;text-decoration:none;font-weight:500;
+  border-radius:6px;padding:10px 24px}
+.open:hover{filter:brightness(1.08)}
+.open:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.formrow{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;margin-bottom:10px}
+.formrow label{font-size:.85rem;color:var(--moss)}
+input[type=text],select{font:inherit;padding:8px 10px;border:1px solid var(--hairline);border-radius:6px;background:#fff;width:100%}
+input.mono{font-family:var(--mono)}
+input:focus,select:focus{outline:2px solid var(--forest);outline-offset:1px}
+input[readonly]{background:var(--paper);color:var(--moss)}
+button.primary{font:inherit;font-weight:500;background:var(--forest);color:#fff;border:0;border-radius:6px;
+  padding:9px 22px;cursor:pointer;margin-top:6px}
+button.primary:hover{filter:brightness(1.08)}
+button.primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.msg{margin-top:10px;font-size:.85rem;min-height:1.2em}
+.msg.err{color:var(--clay)}
+.msg.ok{color:var(--forest)}
+
+.danger{margin-top:26px;border-top:1px dashed var(--hairline);padding-top:16px}
+.danger h3{font-size:.9rem;color:var(--clay);margin-bottom:6px}
+.danger p{font-size:.8rem;color:var(--moss);margin-bottom:10px;max-width:560px}
+button.ghost{font:inherit;background:none;border:1px solid var(--clay);color:var(--clay);
+  border-radius:6px;padding:7px 16px;cursor:pointer;font-size:.85rem}
+button.ghost:hover{background:var(--clay);color:#fff}
+button.ghost:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+
+.banner{background:#fff;border:1px solid var(--clay);color:var(--clay);border-radius:8px;
+  padding:10px 14px;font-size:.85rem;margin-bottom:18px;display:none}
+@media (max-width:560px){.formrow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="back" href="projects.html">← 專案清單</a>
+
+<div class="head">
+  <div class="code" id="hCode"></div>
+  <h1 id="hName">載入中⋯</h1>
+  <div class="sub">
+    <span class="stamp active" id="hStamp" hidden></span>
+    <span id="hNote"></span>
+  </div>
+</div>
+
+<div id="banner" class="banner"></div>
+
+<div class="stations" role="tablist" aria-label="作業站">
+  <button class="station" role="tab" id="tab-settings" aria-selected="true"  data-panel="settings"><span class="n">1</span>設定</button>
+  <button class="station" role="tab" id="tab-zones"    aria-selected="false" data-panel="zones"><span class="n">2</span>範圍</button>
+  <button class="station" role="tab" id="tab-survey"   aria-selected="false" data-panel="survey"><span class="n">3</span>問卷</button>
+  <button class="station" role="tab" id="tab-run"      aria-selected="false" data-panel="run"><span class="n">4</span>執行</button>
+  <button class="station" role="tab" id="tab-data"     aria-selected="false" data-panel="data"><span class="n">5</span>資料</button>
+</div>
+
+<section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
+  <h2>專案設定</h2>
+  <p class="desc">名稱與狀態。專案代號是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
+  <div class="formrow">
+    <label for="fId">專案代號</label>
+    <input type="text" id="fId" class="mono" readonly>
+  </div>
+  <div class="formrow">
+    <label for="fName">專案名稱</label>
+    <input type="text" id="fName" autocomplete="off">
+  </div>
+  <div class="formrow">
+    <label for="fNote">備註</label>
+    <input type="text" id="fNote" autocomplete="off">
+  </div>
+  <div class="formrow">
+    <label for="fStatus">狀態</label>
+    <select id="fStatus">
+      <option value="active">進行中（手機端可選）</option>
+      <option value="archived">封存（手機端不顯示）</option>
+    </select>
+  </div>
+  <button class="primary" id="saveBtn">儲存設定</button>
+  <p class="msg" id="saveMsg" role="status"></p>
+
+  <div class="danger">
+    <h3>自清單移除</h3>
+    <p>只移除登記，讓專案不再出現在清單與手機端；已儲存的範圍、問卷與量測資料都保留在後端，重新以相同代號建立即可復原。</p>
+    <button class="ghost" id="deleteBtn">自清單移除</button>
+  </div>
+</section>
+
+<section class="panel" id="panel-zones" role="tabpanel" aria-labelledby="tab-zones" hidden>
+  <h2>反應區範圍</h2>
+  <p class="desc">在地圖上畫定不規則多邊形反應區。受測者走入區內時，手機自動擷取當下生理與環境資料並跳出現場問卷；走出區外則作廢未完成的問卷。</p>
+  <a class="open" id="openZones" href="#">開啟範圍設定</a>
+</section>
+
+<section class="panel" id="panel-survey" role="tabpanel" aria-labelledby="tab-survey" hidden>
+  <h2>問卷設計</h2>
+  <p class="desc">設計入組問卷與現場 EMA 問卷，支援多語系與五種題型。題目與選項的代號是跨國合併的欄位名，請用英數短碼。問卷觸發方式（範圍、定時或兩者）之後將於此站設定。</p>
+  <a class="open" id="openSurvey" href="#">開啟問卷設計</a>
+</section>
+
+<section class="panel" id="panel-run" role="tabpanel" aria-labelledby="tab-run" hidden>
+  <h2>執行</h2>
+  <p class="desc">受測者日常以手機上的「開始走測」自行啟動。此處的控制面板保留給研究者遠端代按開始與強制結束。</p>
+  <a class="open" id="openPanel" href="#">開啟控制面板</a>
+</section>
+
+<section class="panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data" hidden>
+  <h2>資料</h2>
+  <p class="desc">檢視各場次的軌跡與心率路線圖、匯出 Excel。場次上傳後自動轉存 Google Drive 的機制建置中，完成前可在主控台手動儲存。</p>
+  <a class="open" id="openConsole" href="#">開啟資料主控台</a>
+</section>
+
+</div>
+<script>
+const API = "/api/projects";
+const $ = (id) => document.getElementById(id);
+const pid = new URLSearchParams(location.search).get("id") || "";
+
+function showBanner(text){
+  const b = $("banner");
+  b.textContent = text;
+  b.style.display = "block";
+}
+
+/* ── 分頁切換（hash 同步，重新整理停留原站） ── */
+const tabs = Array.from(document.querySelectorAll(".station"));
+function selectTab(name){
+  tabs.forEach(t=>{
+    const on = t.dataset.panel === name;
+    t.setAttribute("aria-selected", on ? "true" : "false");
+    $("panel-"+t.dataset.panel).hidden = !on;
+  });
+  if(("#"+name) !== location.hash) history.replaceState(null,"","#"+name);
+}
+tabs.forEach(t=>t.addEventListener("click", ()=>selectTab(t.dataset.panel)));
+const initTab = (location.hash||"").replace("#","");
+selectTab(["settings","zones","survey","run","data"].includes(initTab) ? initTab : "settings");
+
+/* ── 載入專案 ── */
+async function load(){
+  if(!pid){
+    showBanner("網址缺少專案代號。請自專案清單點入。");
+    $("hName").textContent = "（未指定專案）";
+    return;
+  }
+  const q = encodeURIComponent(pid);
+  $("openZones").href   = "zones.html?project="+q;
+  $("openSurvey").href  = "survey.html?project="+q;
+  $("openPanel").href   = "panel.html?project="+q;
+  $("openConsole").href = "console.html?project="+q;
+  try{
+    const res = await fetch(API+"?id="+q, {cache:"no-store"});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
+    render(data.project);
+  }catch(e){
+    showBanner("無法載入專案：" + e.message);
+    $("hName").textContent = pid;
+    $("hCode").textContent = pid;
+  }
+}
+
+function render(p){
+  $("hCode").textContent = p.id;
+  $("hName").textContent = p.name || p.id;
+  $("hNote").textContent = p.note || "";
+  const st = $("hStamp");
+  st.hidden = false;
+  st.className = "stamp " + (p.status==="archived" ? "archived" : "active");
+  st.textContent = p.status==="archived" ? "封存" : "進行中";
+  $("fId").value = p.id;
+  $("fName").value = p.name || "";
+  $("fNote").value = p.note || "";
+  $("fStatus").value = p.status==="archived" ? "archived" : "active";
+  document.title = (p.name || p.id) + " — HEALS 生心理研究平台";
+}
+
+/* ── 儲存設定 ── */
+async function save(){
+  const msg = $("saveMsg");
+  msg.className = "msg"; msg.textContent = "";
+  const btn = $("saveBtn"); btn.disabled = true;
+  try{
+    const body = {
+      id: pid,
+      name: $("fName").value.trim(),
+      note: $("fNote").value.trim(),
+      status: $("fStatus").value
+    };
+    const res = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
+    render(data.project);
+    msg.className = "msg ok"; msg.textContent = "已儲存。";
+  }catch(e){
+    msg.className = "msg err"; msg.textContent = "儲存失敗：" + e.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+$("saveBtn").addEventListener("click", save);
+
+/* ── 自清單移除 ── */
+$("deleteBtn").addEventListener("click", async ()=>{
+  const sure = confirm("自清單移除專案「"+pid+"」？\n只移除登記；已儲存的範圍、問卷與量測資料都保留。");
+  if(!sure) return;
+  try{
+    const res = await fetch(API+"?id="+encodeURIComponent(pid), {method:"DELETE"});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
+    location.href = "projects.html";
+  }catch(e){
+    showBanner("移除失敗：" + e.message);
+  }
+});
+
+load();
+</script>
+</body>
+</html>
