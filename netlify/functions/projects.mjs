@@ -73,6 +73,17 @@ export default async (req) => {
       body.status === "archived" ? "archived"
       : body.status === "active" ? "active"
       : base.status || "active";
+    let trigger = base.trigger || { mode: "zone" };
+    if (body.trigger && typeof body.trigger === "object") {
+      const mode = ["zone", "timed", "both"].includes(body.trigger.mode)
+        ? body.trigger.mode
+        : "zone";
+      const iv = Number(body.trigger.intervalMinutes);
+      trigger =
+        mode === "zone"
+          ? { mode }
+          : { mode, intervalMinutes: Number.isInteger(iv) && iv > 0 ? iv : 15 };
+    }
     const next = {
       ...base,
       name:
@@ -81,6 +92,7 @@ export default async (req) => {
           : base.name || pid,
       note: typeof body.note === "string" ? body.note.trim() : base.note || "",
       status,
+      trigger,
       updatedAt: now,
     };
     if (i >= 0) reg.projects[i] = next;
