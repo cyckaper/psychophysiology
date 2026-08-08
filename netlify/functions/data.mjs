@@ -51,6 +51,15 @@ export default async (req) => {
       intake,                                    // 受測者入組基本資料（可能為 null）
     };
     await store.setJSON(key, record);   // 單一寫入
+    // 場次清單簿登記：繞開 list() 最終一致的延遲；drive-sync 以清單簿為主、list() 為輔
+    try {
+      const idx = getStore({ name: "heals-data-index", consistency: "strong" });
+      let man = null;
+      try { man = await idx.get("manifest", { type: "json" }); } catch (_) { /* 首次尚無清單簿 */ }
+      if (!man || typeof man !== "object" || !man.keys || typeof man.keys !== "object") man = { keys: {} };
+      man.keys[key] = record.uploadedAt;
+      await idx.setJSON("manifest", man);
+    } catch (_) { /* 登記失敗不影響上傳本體；drive-sync 仍可靠 list() 撈到 */ }
     return reply({ ok: true, key, counts: record.counts });
   }
 

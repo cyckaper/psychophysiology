@@ -141,19 +141,27 @@ export default async (req) => {
 
   const dataStore = getStore({ name: "heals-data", consistency: "strong" });
   const logStore  = getStore({ name: "heals-drive-log", consistency: "strong" });
+  const idxStore  = getStore({ name: "heals-data-index", consistency: "strong" });
 
-  // 找出尚未推送的場次
+  // 場次來源＝清單簿（上傳當下登記、強一致單筆讀、即時） ∪ list()（撈漏網）
+  let manifestKeys = [];
+  try {
+    const man = await idxStore.get("manifest", { type: "json" });
+    if (man && man.keys && typeof man.keys === "object") manifestKeys = Object.keys(man.keys);
+  } catch (_) { /* 尚無清單簿 */ }
   const { blobs } = await dataStore.list();
+  const allKeys = Array.from(new Set([...manifestKeys, ...blobs.map((b) => b.key)]));
+
   const pending = [];
-  for (const b of blobs) {
+  for (const key of allKeys) {
     let done = null;
-    try { done = await logStore.get(b.key, { type: "json" }); } catch (_) { /* 未推送 */ }
-    if (!done) pending.push(b.key);
+    try { done = await logStore.get(key, { type: "json" }); } catch (_) { /* 未推送 */ }
+    if (!done) pending.push(key);
   }
   pending.sort();   // 穩定順序，先舊後新（key 以專案/編號/場次組成）
 
   if (!pending.length) {
-    return json({ ok: true, scanned: blobs.length, pending: 0, synced: [], note: "全部場次皆已封存" });
+    return json({ ok: true, scanned: allKeys.length, pending: 0, synced: [], note: "全部場次皆已封存" });
   }
 
   let token;
@@ -219,7 +227,7 @@ export default async (req) => {
 
   return json({
     ok: true,
-    scanned: blobs.length,
+    scanned: allKeys.length,
     pending: pending.length,
     synced,
     skipped,
