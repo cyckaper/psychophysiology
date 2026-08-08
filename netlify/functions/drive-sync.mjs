@@ -152,15 +152,26 @@ export default async (req) => {
   const { blobs } = await dataStore.list();
   const allKeys = Array.from(new Set([...manifestKeys, ...blobs.map((b) => b.key)]));
 
+  const logDump = {};
   const pending = [];
   for (const key of allKeys) {
     let done = null;
     try { done = await logStore.get(key, { type: "json" }); } catch (_) { /* 未推送 */ }
+    logDump[key] = done;
     if (!done) pending.push(key);
   }
   pending.sort();   // 穩定順序，先舊後新（key 以專案/編號/場次組成）
 
-  if (!pending.length) {
+  const url = new URL(req.url);
+  const wantProbe = url.searchParams.get("probe");
+  const redoKey = url.searchParams.get("redo");
+
+  if (redoKey) {
+    try { await logStore.delete(redoKey); } catch (_) {}
+    return json({ ok: true, redo: redoKey, note: "已清除該場次的記帳；再開本網址（不帶參數）即重新推送" });
+  }
+
+  if (!pending.length && !wantProbe) {
     return json({ ok: true, scanned: allKeys.length, pending: 0, synced: [], note: "全部場次皆已封存" });
   }
 
@@ -178,6 +189,25 @@ export default async (req) => {
       error: "根資料夾檢查失敗 HTTP " + chk.status + "：" + t,
       hint: "404＝GDRIVE_FOLDER_ID 不對（要抄進入資料夾後網址列 folders/ 後那串）或未分享給服務帳戶；403 且內文含 accessNotConfigured＝要到 Cloud 專案「API 和服務 → 程式庫」啟用 Google Drive API。",
     }, 502);
+  }
+
+  if (wantProbe) {
+    const rootInfo = await chk.json().catch(() => null);
+    const authH = { headers: { Authorization: "Bearer " + token } };
+    const q1 = encodeURIComponent("'" + rootId + "' in parents and trashed=false");
+    const kids = await fetch("https://www.googleapis.com/drive/v3/files?q=" + q1 + "&fields=files(id,name,mimeType,owners(emailAddress))&pageSize=50", authH)
+      .then((r) => r.json()).catch((e) => ({ error: String(e) }));
+    const q2 = encodeURIComponent("'root' in parents and trashed=false");
+    const home = await fetch("https://www.googleapis.com/drive/v3/files?q=" + q2 + "&fields=files(id,name,mimeType)&pageSize=50", authH)
+      .then((r) => r.json()).catch((e) => ({ error: String(e) }));
+    return json({
+      probe: true,
+      root: rootInfo,                      // 服務帳戶眼中的根資料夾（name 應為你的資料夾名）
+      rootChildren: kids.files || kids,    // 它看到根資料夾底下有什麼
+      saHome: home.files || home,          // 它「自己家」裡的流浪檔案
+      log: logDump,                        // 記帳簿內容
+      pendingKeys: pending,
+    });
   }
 
   const folderCache = new Map();
@@ -215,10 +245,18 @@ export default async (req) => {
       if (Array.isArray(rec.location)    && rec.location.length)    files.push(["軌跡.json", rec.location]);
       if (Array.isArray(rec.environment) && rec.environment.length) files.push(["環境.json", rec.environment]);
 
+      const uploaded = [];
       for (const [name, obj] of files) {
-        await driveUploadJSON(token, name, obj, sessFolder);
+        const fid = await driveUploadJSON(token, name, obj, sessFolder);
+        uploaded.push({ name, id: fid });
       }
-      await logStore.setJSON(key, { syncedAt: Date.now(), folder: folderName, files: files.map((f) => f[0]) });
+      await logStore.setJSON(key, {
+        syncedAt: Date.now(),
+        folder: folderName,
+        folderId: sessFolder,
+        projectFolderId: projFolder,
+        files: uploaded,
+      });
       synced.push(key);
     } catch (e) {
       failed.push({ key, error: String(e.message || e).slice(0, 200) });
