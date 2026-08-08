@@ -27,6 +27,21 @@ function b64url(input) {
   return Buffer.from(input).toString("base64")
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+async function getAccessTokenOAuth() {
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=refresh_token"
+      + "&refresh_token=" + encodeURIComponent(process.env.GDRIVE_OAUTH_REFRESH_TOKEN)
+      + "&client_id=" + encodeURIComponent(process.env.GDRIVE_OAUTH_CLIENT_ID)
+      + "&client_secret=" + encodeURIComponent(process.env.GDRIVE_OAUTH_CLIENT_SECRET),
+  });
+  if (!resp.ok) throw new Error("OAuth 換 token 失敗 HTTP " + resp.status + "：" + (await resp.text()).slice(0, 200));
+  const d = await resp.json();
+  if (!d.access_token) throw new Error("OAuth 回應缺 access_token");
+  return d.access_token;
+}
+
 async function getAccessToken(sa) {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -128,15 +143,21 @@ export default async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
 
   const started = Date.now();
-  const keyRaw = process.env.GDRIVE_SA_KEY;
   const rootId = process.env.GDRIVE_FOLDER_ID;
-  if (!keyRaw || !rootId) {
-    return json({ error: "尚未設定 GDRIVE_SA_KEY 或 GDRIVE_FOLDER_ID 環境變數" }, 500);
+  const oauthReady = !!(process.env.GDRIVE_OAUTH_REFRESH_TOKEN
+    && process.env.GDRIVE_OAUTH_CLIENT_ID
+    && process.env.GDRIVE_OAUTH_CLIENT_SECRET);
+  const keyRaw = process.env.GDRIVE_SA_KEY;
+  if (!rootId) return json({ error: "尚未設定 GDRIVE_FOLDER_ID 環境變數" }, 500);
+  if (!oauthReady && !keyRaw) {
+    return json({ error: "尚未設定授權：請提供 GDRIVE_OAUTH_CLIENT_ID / GDRIVE_OAUTH_CLIENT_SECRET / GDRIVE_OAUTH_REFRESH_TOKEN（建議，檔案歸你本人），或 GDRIVE_SA_KEY（僅適用共用雲端硬碟）" }, 500);
   }
-  let sa;
-  try { sa = JSON.parse(keyRaw); } catch { return json({ error: "GDRIVE_SA_KEY 不是有效 JSON" }, 500); }
-  if (!sa.client_email || !sa.private_key) {
-    return json({ error: "GDRIVE_SA_KEY 缺 client_email 或 private_key" }, 500);
+  let sa = null;
+  if (!oauthReady) {
+    try { sa = JSON.parse(keyRaw); } catch { return json({ error: "GDRIVE_SA_KEY 不是有效 JSON" }, 500); }
+    if (!sa.client_email || !sa.private_key) {
+      return json({ error: "GDRIVE_SA_KEY 缺 client_email 或 private_key" }, 500);
+    }
   }
 
   const dataStore = getStore({ name: "heals-data", consistency: "strong" });
@@ -176,7 +197,7 @@ export default async (req) => {
   }
 
   let token;
-  try { token = await getAccessToken(sa); }
+  try { token = sa ? await getAccessToken(sa) : await getAccessTokenOAuth(); }
   catch (e) { return json({ error: String(e.message || e) }, 502); }
 
   // 開工前先驗證根資料夾：ID 錯、未分享、或 Drive API 未啟用都在這裡一次講清楚
@@ -202,6 +223,7 @@ export default async (req) => {
       .then((r) => r.json()).catch((e) => ({ error: String(e) }));
     return json({
       probe: true,
+      authMode: sa ? "service-account" : "oauth-user",
       root: rootInfo,                      // 服務帳戶眼中的根資料夾（name 應為你的資料夾名）
       rootChildren: kids.files || kids,    // 它看到根資料夾底下有什麼
       saHome: home.files || home,          // 它「自己家」裡的流浪檔案
