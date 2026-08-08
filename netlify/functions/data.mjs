@@ -16,9 +16,10 @@ const reply = (obj, status = 200) =>
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS },
   });
 
-// key 片段清理：保留字母數字與 # . - _
+// key 片段清理：僅保留字母數字與 . - _
+// 「#」一律剔除——Blobs 以 URL 路徑存取鍵，# 之後會被當片段截斷，鍵會塌縮互相覆蓋
 const seg = (s, fb = "NA") => {
-  const v = String(s ?? "").trim().replace(/[^\w#.-]/g, "_");
+  const v = String(s ?? "").trim().replace(/#/g, "").replace(/[^\w.-]/g, "_");
   return v.length ? v : fb;
 };
 
@@ -37,6 +38,8 @@ export default async (req) => {
     if (!project) return reply({ error: "project required" }, 400);
     const code = seg(body.code);
     const session = seg(body.session);
+    const codeRaw = String(body.code ?? "").trim() || code;         // 記錄內保留原樣（如 #1）
+    const sessionRaw = String(body.session ?? "").trim() || session;
     const physiology  = Array.isArray(body.physiology)  ? body.physiology  : [];
     const location    = Array.isArray(body.location)    ? body.location    : [];
     const environment = Array.isArray(body.environment) ? body.environment : [];
@@ -45,7 +48,7 @@ export default async (req) => {
     const key = `${project}/${code}/${session}`;
     const intake = (body.intake && typeof body.intake === "object") ? body.intake : null;
     const record = {
-      project, code, session, uploadedAt: Date.now(),
+      project, code: codeRaw, session: sessionRaw, uploadedAt: Date.now(),
       counts: { physiology: physiology.length, location: location.length, environment: environment.length, ema: ema.length },
       physiology, location, environment, ema,
       intake,                                    // 受測者入組基本資料（可能為 null）
