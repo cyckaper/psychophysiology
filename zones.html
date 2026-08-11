@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>反應區設定 · 景觀生心理研究</title>
+<title>反應區範圍 — 讀人 · 即時心理生理研究平台</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root{
@@ -50,6 +50,12 @@
   .backlink:hover{text-decoration:underline;}
   .chip{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--moss-deep);
     border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 10px;font-size:14px;}
+  .stnav{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px;}
+  .stnav a{font-size:13px;color:var(--moss-deep);text-decoration:none;border:1px solid var(--line);
+    background:var(--paper);border-radius:999px;padding:3px 12px;}
+  .stnav a.on{background:var(--moss);border-color:var(--moss-deep);color:#fff;}
+  .stnav a:hover{border-color:var(--moss-deep);}
+
 </style>
 </head>
 <body>
@@ -63,6 +69,12 @@
     <span class="chip" id="projChip">—</span>
     <span style="flex:1"></span>
     <button class="btn" id="btnSave">儲存反應區</button>
+  </div>
+  <div class="stnav" id="stnav" style="display:none">
+    <a data-st="settings">1 設定</a>
+    <a data-st="zones" class="on">2 範圍</a>
+    <a data-st="survey">3 問卷</a>
+    <a data-st="data">4 資料</a>
   </div>
   <div class="note" id="note" style="display:none"></div>
 
@@ -290,6 +302,15 @@
   if(PROJ){
     $("#projChip").textContent = PROJ;
     $("#backLink").href = "project.html?id=" + encodeURIComponent(PROJ) + "#zones";
+    var _q = encodeURIComponent(PROJ);
+    document.getElementById("stnav").style.display = "flex";
+    document.querySelectorAll("#stnav a").forEach(function(a){
+      var st = a.getAttribute("data-st");
+      if(st === "settings") a.href = "project.html?id=" + _q + "#settings";
+      if(st === "zones")    a.href = "zones.html?project=" + _q;
+      if(st === "survey")   a.href = "survey.html?project=" + _q;
+      if(st === "data")     a.href = "console.html?project=" + _q;
+    });
     loadZones();
   }else{
     $("#projChip").textContent = "未指定專案";

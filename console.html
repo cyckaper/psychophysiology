@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEALS 場域研究 · 專案資料主控台</title>
+<title>資料主控台 — 讀人 · 即時心理生理研究平台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -92,6 +92,12 @@
   .backlink:hover{text-decoration:underline;}
   .chip{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--moss-deep);
     border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 10px;font-size:14px;}
+  .stnav{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px;}
+  .stnav a{font-size:13px;color:var(--moss-deep);text-decoration:none;border:1px solid var(--line);
+    background:var(--paper);border-radius:999px;padding:3px 12px;}
+  .stnav a.on{background:var(--moss);border-color:var(--moss-deep);color:#fff;}
+  .stnav a:hover{border-color:var(--moss-deep);}
+
   .btn:disabled{opacity:.45;cursor:not-allowed;}
   .pcard .drop{display:none;}
   body.showlocal .pcard .drop{display:block;}
@@ -114,6 +120,12 @@
     <span style="flex:1"></span>
     <button class="btn" id="btnExport">產出專案 Excel</button>
     <button class="btn ghost" id="btnDrive">存到 Google Drive</button>
+  </div>
+  <div class="stnav" id="stnav" style="display:none">
+    <a data-st="settings">1 設定</a>
+    <a data-st="zones">2 範圍</a>
+    <a data-st="survey">3 問卷</a>
+    <a data-st="data" class="on">4 資料</a>
   </div>
   <div class="note" id="driveNote" style="display:none"></div>
 
@@ -445,6 +457,15 @@ if(advEl){advEl.addEventListener("toggle",()=>document.body.classList.toggle("sh
 if(PROJ){
   $("#projChip").textContent=PROJ;
   $("#backLink").href="project.html?id="+encodeURIComponent(PROJ)+"#data";
+    var _q = encodeURIComponent(PROJ);
+    document.getElementById("stnav").style.display = "flex";
+    document.querySelectorAll("#stnav a").forEach(function(a){
+      var st = a.getAttribute("data-st");
+      if(st === "settings") a.href = "project.html?id=" + _q + "#settings";
+      if(st === "zones")    a.href = "zones.html?project=" + _q;
+      if(st === "survey")   a.href = "survey.html?project=" + _q;
+      if(st === "data")     a.href = "console.html?project=" + _q;
+    });
   fetch("/api/projects?id="+encodeURIComponent(PROJ),{cache:"no-store"})
     .then(r=>r.ok?r.json():null)
     .then(d=>{if(d&&d.project&&d.project.name)PROJ_NAME=d.project.name;})

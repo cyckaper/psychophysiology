@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>問卷設計 · 景觀生心理研究</title>
+<title>問卷設計 — 讀人 · 即時心理生理研究平台</title>
 <style>
   :root{
     --cream:#faf6ea; --paper:#fffdf7; --line:#e7ddc6;
@@ -61,6 +61,12 @@
   .backlink:hover{text-decoration:underline;}
   .chip{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:var(--moss-deep);
     border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:2px 10px;font-size:14px;}
+  .stnav{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px;}
+  .stnav a{font-size:13px;color:var(--moss-deep);text-decoration:none;border:1px solid var(--line);
+    background:var(--paper);border-radius:999px;padding:3px 12px;}
+  .stnav a.on{background:var(--moss);border-color:var(--moss-deep);color:#fff;}
+  .stnav a:hover{border-color:var(--moss-deep);}
+
 </style>
 </head>
 <body>
@@ -74,6 +80,12 @@
     <span class="chip" id="projChip">—</span>
     <span style="flex:1"></span>
     <button class="btn" id="btnSave">儲存問卷</button>
+  </div>
+  <div class="stnav" id="stnav" style="display:none">
+    <a data-st="settings">1 設定</a>
+    <a data-st="zones">2 範圍</a>
+    <a data-st="survey" class="on">3 問卷</a>
+    <a data-st="data">4 資料</a>
   </div>
   <div class="note" id="note" style="display:none"></div>
 
@@ -394,13 +406,7 @@
       title: L("受測者基本資料","Participant Background","参加者の基本情報"),
       questions: [
         Object.assign(newQ("email"), { id:"email", required:true, text:L("電子郵件","Email","メール") }),
-        Object.assign(newQ("single"), { id:"age", text:L("年齡","Age","年齢"), choices:[
-          {value:"u18",label:L("未滿 18","Under 18","18歳未満")},
-          {value:"18_29",label:L("18–29","18–29","18–29")},
-          {value:"30_44",label:L("30–44","30–44","30–44")},
-          {value:"45_59",label:L("45–59","45–59","45–59")},
-          {value:"60p",label:L("60 以上","60+","60以上")}
-        ]}),
+        Object.assign(newQ("text"), { id:"birth_year", text:L("出生年（西元）","Birth year (AD)","生まれ年（西暦）") }),
         Object.assign(newQ("single"), { id:"gender", text:L("性別","Gender","性別"), choices:[
           {value:"f",label:L("女","Female","女性")},
           {value:"m",label:L("男","Male","男性")},
@@ -642,6 +648,15 @@
   if(PROJ){
     $("#projChip").textContent = PROJ;
     $("#backLink").href = "project.html?id=" + encodeURIComponent(PROJ) + "#survey";
+    var _q = encodeURIComponent(PROJ);
+    document.getElementById("stnav").style.display = "flex";
+    document.querySelectorAll("#stnav a").forEach(function(a){
+      var st = a.getAttribute("data-st");
+      if(st === "settings") a.href = "project.html?id=" + _q + "#settings";
+      if(st === "zones")    a.href = "zones.html?project=" + _q;
+      if(st === "survey")   a.href = "survey.html?project=" + _q;
+      if(st === "data")     a.href = "console.html?project=" + _q;
+    });
     loadAll();
   }else{
     $("#projChip").textContent = "未指定專案";

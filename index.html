@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>專案清單 — HEALS 生心理研究平台</title>
+<title>專案列表 — 讀人 · 即時心理生理研究平台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -77,14 +77,14 @@ details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin
 <div class="wrap">
 
 <header class="site">
-  <div class="brand">HEALS 生心理研究平台<small>場域生心理量測 · 遠端遙控</small></div>
+  <div class="brand">讀人 · 即時心理生理研究平台<small>HEALS Design · 場域生心理量測</small></div>
   <nav class="site">
     <a href="live.html">即時監看</a>
     <a href="guide.html">操作手冊</a>
   </nav>
 </header>
 
-<h1>專案清單</h1>
+<h1>專案列表</h1>
 <p class="lede">一切以專案為中心：範圍、問卷、執行與資料，都以專案代號歸檔。點入專案後依作業順序逐站設定。</p>
 
 <div id="banner" class="banner"></div>
@@ -190,7 +190,7 @@ async function load(){
     const gg = $("archivedGrid"); gg.replaceChildren();
     archived.forEach(p=>gg.appendChild(cardEl(p)));
   }catch(e){
-    showBanner("無法載入專案清單：" + e.message + "。請確認 projects.mjs 已部署後重新整理。");
+    showBanner("無法載入專案列表：" + e.message + "。請確認 projects.mjs 已部署後重新整理。");
   }
 }
 
