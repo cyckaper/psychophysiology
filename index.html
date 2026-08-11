@@ -64,6 +64,7 @@ button.primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .stamp{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:.7rem;letter-spacing:.08em}
 .stamp.active{color:var(--forest)}
 .stamp.archived{color:var(--clay)}
+.card .livebadge{margin-top:6px;font-size:.78rem;font-weight:700;color:var(--forest)}
 .empty{color:var(--moss);font-size:.9rem;padding:18px 4px}
 details.archived{margin-top:26px}
 details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin-bottom:12px}
@@ -78,6 +79,7 @@ details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin
 <header class="site">
   <div class="brand">HEALS 生心理研究平台<small>場域生心理量測 · 遠端遙控</small></div>
   <nav class="site">
+    <a href="live.html">即時監看</a>
     <a href="guide.html">操作手冊</a>
   </nav>
 </header>
@@ -144,9 +146,11 @@ function cardEl(p){
   a.href = "project.html?id=" + encodeURIComponent(p.id);
   const stampClass = p.status === "archived" ? "archived" : "active";
   const stampText  = p.status === "archived" ? "封存" : "進行中";
+  const n = liveCounts[p.id] || 0;
   a.innerHTML =
     '<div class="code"></div>' +
     '<div class="name"></div>' +
+    (n > 0 ? '<div class="livebadge">● ' + n + ' 人測試中</div>' : '') +
     '<div class="meta"><span class="stamp '+stampClass+'">'+stampText+'</span><span class="time"></span></div>';
   a.querySelector(".code").textContent = p.id;
   a.querySelector(".name").textContent = p.name || p.id;
@@ -154,8 +158,20 @@ function cardEl(p){
   return a;
 }
 
+let liveCounts = {};
+async function loadLive(){
+  try{
+    const res = await fetch("/api/live?all=1&t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) return;
+    const data = await res.json();
+    liveCounts = {};
+    (data.projects || []).forEach(g => { liveCounts[g.id] = (g.devices || []).length; });
+  }catch(e){ /* 監看資訊拿不到不影響清單 */ }
+}
+
 async function load(){
   try{
+    await loadLive();
     const res = await fetch(API, {cache:"no-store"});
     if(!res.ok) throw new Error("HTTP "+res.status);
     const data = await res.json();
@@ -212,6 +228,7 @@ $("createBtn").addEventListener("click", createProject);
   $(id).addEventListener("keydown", (ev)=>{ if(ev.key==="Enter") createProject(); });
 });
 load();
+setInterval(load, 30000);   // 每 30 秒刷新清單與測試中人數
 </script>
 </body>
 </html>
