@@ -1,1 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>專案清單 — HEALS 生心理研究平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F1E3;
+  --card:#FFFDF7;
+  --ink:#26301F;
+  --forest:#2C5F2D;
+  --moss:#5A6B3E;
+  --clay:#B8694A;
+  --hairline:rgba(44,95,45,.22);
+  --serif:"Noto Serif TC",serif;
+  --sans:"Noto Sans TC",system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--forest)}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 64px}
 
+header.site{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  border-bottom:2px solid var(--forest);padding-bottom:12px;margin-bottom:24px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.brand small{display:block;font-family:var(--sans);font-weight:400;font-size:.78rem;color:var(--moss)}
+nav.site a{font-size:.85rem;margin-left:14px;text-decoration:none}
+nav.site a:hover{text-decoration:underline}
+
+h1{font-family:var(--serif);font-size:1.5rem;margin-bottom:4px}
+.lede{color:var(--moss);font-size:.9rem;margin-bottom:24px}
+
+.panel{background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:18px 18px 20px;margin-bottom:28px}
+.panel h2{font-family:var(--serif);font-size:1.05rem;margin-bottom:12px}
+.formrow{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;margin-bottom:10px}
+.formrow label{font-size:.85rem;color:var(--moss)}
+input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--hairline);border-radius:6px;background:#fff;width:100%}
+input.mono{font-family:var(--mono)}
+input:focus{outline:2px solid var(--forest);outline-offset:1px}
+.hint{grid-column:2;font-size:.75rem;color:var(--moss)}
+button.primary{font:inherit;font-weight:500;background:var(--forest);color:#fff;border:0;border-radius:6px;
+  padding:9px 22px;cursor:pointer;margin-top:6px}
+button.primary:hover{filter:brightness(1.08)}
+button.primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.msg{margin-top:10px;font-size:.85rem;min-height:1.2em}
+.msg.err{color:var(--clay)}
+.msg.ok{color:var(--forest)}
+
+.listhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.listhead h2{font-family:var(--serif);font-size:1.05rem}
+.count{font-size:.8rem;color:var(--moss)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{display:block;background:var(--card);border:1px solid var(--hairline);border-radius:10px;
+  padding:14px 16px;text-decoration:none;color:inherit;transition:border-color .15s}
+.card:hover{border-color:var(--forest)}
+.card:focus-visible{outline:2px solid var(--forest);outline-offset:2px}
+.card .code{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--forest);letter-spacing:.02em}
+.card .name{font-family:var(--serif);font-size:1rem;margin-top:2px}
+.card .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.75rem;color:var(--moss)}
+.stamp{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:.7rem;letter-spacing:.08em}
+.stamp.active{color:var(--forest)}
+.stamp.archived{color:var(--clay)}
+.card .livebadge{margin-top:6px;font-size:.78rem;font-weight:700;color:var(--forest)}
+.empty{color:var(--moss);font-size:.9rem;padding:18px 4px}
+details.archived{margin-top:26px}
+details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin-bottom:12px}
+.banner{background:#fff;border:1px solid var(--clay);color:var(--clay);border-radius:8px;
+  padding:10px 14px;font-size:.85rem;margin-bottom:18px;display:none}
+@media (max-width:560px){.formrow{grid-template-columns:1fr}.hint{grid-column:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="site">
+  <div class="brand">HEALS 生心理研究平台<small>場域生心理量測 · 遠端遙控</small></div>
+  <nav class="site">
+    <a href="live.html">即時監看</a>
+    <a href="guide.html">操作手冊</a>
+  </nav>
+</header>
+
+<h1>專案清單</h1>
+<p class="lede">一切以專案為中心：範圍、問卷、執行與資料，都以專案代號歸檔。點入專案後依作業順序逐站設定。</p>
+
+<div id="banner" class="banner"></div>
+
+<section class="panel" aria-labelledby="createTitle">
+  <h2 id="createTitle">建立專案</h2>
+  <div class="formrow">
+    <label for="pid">專案代號</label>
+    <input type="text" id="pid" class="mono" maxlength="32" autocomplete="off"
+           placeholder="例：aa、park2026">
+    <p class="hint">英數短碼（可含 - 與 _），是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
+  </div>
+  <div class="formrow">
+    <label for="pname">專案名稱</label>
+    <input type="text" id="pname" autocomplete="off" placeholder="例：大安森林公園走測（2026 春）">
+  </div>
+  <div class="formrow">
+    <label for="pnote">備註</label>
+    <input type="text" id="pnote" autocomplete="off" placeholder="選填：案場、期程、負責人">
+  </div>
+  <button class="primary" id="createBtn">建立專案</button>
+  <p class="msg" id="createMsg" role="status"></p>
+</section>
+
+<div class="listhead">
+  <h2>進行中</h2>
+  <span class="count" id="activeCount"></span>
+</div>
+<div class="grid" id="activeGrid"></div>
+<p class="empty" id="activeEmpty" hidden>尚無專案。建立第一個專案後，範圍、問卷與量測資料都會以專案代號歸檔。</p>
+
+<details class="archived" id="archivedWrap" hidden>
+  <summary>已封存的專案（<span id="archivedCount">0</span>）</summary>
+  <div class="grid" id="archivedGrid"></div>
+</details>
+
+</div>
+<script>
+const API = "/api/projects";
+const $ = (id) => document.getElementById(id);
+
+function showBanner(text){
+  const b = $("banner");
+  b.textContent = text;
+  b.style.display = "block";
+}
+
+function fmtTime(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  const p = (n)=>String(n).padStart(2,"0");
+  return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+
+function cardEl(p){
+  const a = document.createElement("a");
+  a.className = "card";
+  a.href = "project.html?id=" + encodeURIComponent(p.id);
+  const stampClass = p.status === "archived" ? "archived" : "active";
+  const stampText  = p.status === "archived" ? "封存" : "進行中";
+  const n = liveCounts[p.id] || 0;
+  a.innerHTML =
+    '<div class="code"></div>' +
+    '<div class="name"></div>' +
+    (n > 0 ? '<div class="livebadge">● ' + n + ' 人測試中</div>' : '') +
+    '<div class="meta"><span class="stamp '+stampClass+'">'+stampText+'</span><span class="time"></span></div>';
+  a.querySelector(".code").textContent = p.id;
+  a.querySelector(".name").textContent = p.name || p.id;
+  a.querySelector(".time").textContent = fmtTime(p.updatedAt);
+  return a;
+}
+
+let liveCounts = {};
+async function loadLive(){
+  try{
+    const res = await fetch("/api/live?all=1&t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) return;
+    const data = await res.json();
+    liveCounts = {};
+    (data.projects || []).forEach(g => { liveCounts[g.id] = (g.devices || []).length; });
+  }catch(e){ /* 監看資訊拿不到不影響清單 */ }
+}
+
+async function load(){
+  try{
+    await loadLive();
+    const res = await fetch(API, {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    const list = Array.isArray(data.projects) ? data.projects : [];
+    const active = list.filter(p=>p.status!=="archived");
+    const archived = list.filter(p=>p.status==="archived");
+
+    const ag = $("activeGrid"); ag.replaceChildren();
+    active.forEach(p=>ag.appendChild(cardEl(p)));
+    $("activeEmpty").hidden = active.length>0;
+    $("activeCount").textContent = active.length ? active.length+" 個" : "";
+
+    const arw = $("archivedWrap");
+    arw.hidden = archived.length===0;
+    $("archivedCount").textContent = archived.length;
+    const gg = $("archivedGrid"); gg.replaceChildren();
+    archived.forEach(p=>gg.appendChild(cardEl(p)));
+  }catch(e){
+    showBanner("無法載入專案清單：" + e.message + "。請確認 projects.mjs 已部署後重新整理。");
+  }
+}
+
+async function createProject(){
+  const msg = $("createMsg");
+  msg.className = "msg";
+  msg.textContent = "";
+  const id = $("pid").value.trim();
+  if(!/^[A-Za-z0-9_-]{1,32}$/.test(id)){
+    msg.className = "msg err";
+    msg.textContent = "專案代號必須為 1–32 字元英數短碼（可含 - 與 _）。";
+    return;
+  }
+  const body = { id, name: $("pname").value.trim(), note: $("pnote").value.trim() };
+  const btn = $("createBtn");
+  btn.disabled = true;
+  try{
+    const res = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || ("HTTP "+res.status));
+    msg.className = "msg ok";
+    msg.textContent = "已建立專案 " + data.project.id + "。";
+    $("pid").value = ""; $("pname").value = ""; $("pnote").value = "";
+    await load();
+  }catch(e){
+    msg.className = "msg err";
+    msg.textContent = "建立失敗：" + e.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+$("createBtn").addEventListener("click", createProject);
+["pid","pname","pnote"].forEach(id=>{
+  $(id).addEventListener("keydown", (ev)=>{ if(ev.key==="Enter") createProject(); });
+});
+load();
+setInterval(load, 30000);   // 每 30 秒刷新清單與測試中人數
+</script>
+</body>
+</html>
