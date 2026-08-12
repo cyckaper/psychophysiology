@@ -47,8 +47,10 @@ export default async (req) => {
 
     const key = `${project}/${code}/${session}`;
     const intake = (body.intake && typeof body.intake === "object") ? body.intake : null;
+    const isFinal = body.final === false ? false : true;   // 走測中的定期備份標記 final:false；未帶視為定稿
     const record = {
       project, code: codeRaw, session: sessionRaw, uploadedAt: Date.now(),
+      final: isFinal,
       counts: { physiology: physiology.length, location: location.length, environment: environment.length, ema: ema.length },
       physiology, location, environment, ema,
       intake,                                    // 受測者入組基本資料（可能為 null）
@@ -60,7 +62,7 @@ export default async (req) => {
       let man = null;
       try { man = await idx.get("manifest", { type: "json" }); } catch (_) { /* 首次尚無清單簿 */ }
       if (!man || typeof man !== "object" || !man.keys || typeof man.keys !== "object") man = { keys: {} };
-      man.keys[key] = record.uploadedAt;
+      man.keys[key] = { t: record.uploadedAt, final: isFinal };
       await idx.setJSON("manifest", man);
     } catch (_) { /* 登記失敗不影響上傳本體；drive-sync 仍可靠 list() 撈到 */ }
     return reply({ ok: true, key, counts: record.counts });

@@ -112,6 +112,15 @@ async function driveUploadJSON(token, name, obj, parentId) {
   if (!r.ok) throw new Error("上傳「" + name + "」失敗 HTTP " + r.status + "：" + (await r.text()).slice(0, 200));
   return (await r.json()).id;
 }
+async function driveUpdateJSON(token, fileId, obj) {
+  const r = await fetch("https://www.googleapis.com/upload/drive/v3/files/" + fileId + "?uploadType=media&fields=id", {
+    method: "PATCH",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(obj, null, 1),
+  });
+  if (!r.ok) throw new Error("更新檔案失敗 HTTP " + r.status + "：" + (await r.text()).slice(0, 200));
+  return (await r.json()).id;
+}
 
 /* ---- 小工具 ---- */
 function tpeStamp(ms) {
@@ -165,23 +174,40 @@ export default async (req) => {
   const idxStore  = getStore({ name: "heals-data-index", consistency: "strong" });
 
   // 場次來源＝清單簿（上傳當下登記、強一致單筆讀、即時） ∪ list()（撈漏網）
-  let manifestKeys = [];
+  // 清單簿的值：舊式為上傳時間數字，新式為 {t, final}——final=false 代表走測中的定期備份
+  const manifestInfo = {};
   try {
     const man = await idxStore.get("manifest", { type: "json" });
-    if (man && man.keys && typeof man.keys === "object") manifestKeys = Object.keys(man.keys);
+    if (man && man.keys && typeof man.keys === "object") {
+      for (const k of Object.keys(man.keys)) {
+        const v = man.keys[k];
+        manifestInfo[k] = (v && typeof v === "object")
+          ? { t: Number(v.t) || 0, final: v.final !== false }
+          : { t: Number(v) || 0, final: true };
+      }
+    }
   } catch (_) { /* 尚無清單簿 */ }
   const { blobs } = await dataStore.list();
-  const allKeys = Array.from(new Set([...manifestKeys, ...blobs.map((b) => b.key)]));
+  const allKeys = Array.from(new Set([...Object.keys(manifestInfo), ...blobs.map((b) => b.key)]));
 
   const logDump = {};
-  const pending = [];
+  const pending = [];      // 定稿、尚未封存 → 建檔
+  const updates = [];      // 封存後又補傳（如充電同步後補心率）→ 原地更新同名檔
+  const inProgress = [];   // 走測中的定期備份 → 資料已在後端，Drive 等定稿
   for (const key of allKeys) {
     let done = null;
     try { done = await logStore.get(key, { type: "json" }); } catch (_) { /* 未推送 */ }
     logDump[key] = done;
-    if (!done) pending.push(key);
+    const info = manifestInfo[key] || { t: 0, final: true };
+    if (done && done.skipped) continue;
+    if (!done) {
+      if (info.final === false) { inProgress.push(key); continue; }
+      pending.push(key);
+    } else if (info.final !== false && info.t > (done.syncedAt || 0)) {
+      updates.push(key);
+    }
   }
-  pending.sort();   // 穩定順序，先舊後新（key 以專案/編號/場次組成）
+  pending.sort(); updates.sort();
 
   const url = new URL(req.url);
   const wantProbe = url.searchParams.get("probe");
@@ -192,8 +218,11 @@ export default async (req) => {
     return json({ ok: true, redo: redoKey, note: "已清除該場次的記帳；再開本網址（不帶參數）即重新推送" });
   }
 
-  if (!pending.length && !wantProbe) {
-    return json({ ok: true, scanned: allKeys.length, pending: 0, synced: [], note: "全部場次皆已封存" });
+  if (!pending.length && !updates.length && !wantProbe) {
+    return json({
+      ok: true, scanned: allKeys.length, pending: 0, synced: [], inProgress,
+      note: "全部定稿場次皆已封存" + (inProgress.length ? "；走測中 " + inProgress.length + " 場定期備份中" : ""),
+    });
   }
 
   let token;
@@ -229,13 +258,20 @@ export default async (req) => {
       saHome: home.files || home,          // 它「自己家」裡的流浪檔案
       log: logDump,                        // 記帳簿內容
       pendingKeys: pending,
+      updateKeys: updates,
+      inProgress,
     });
   }
 
   const folderCache = new Map();
   const synced = [], failed = [], skipped = [];
+  const work = [
+    ...pending.map((k) => ({ key: k, mode: "new" })),
+    ...updates.map((k) => ({ key: k, mode: "update" })),
+  ];
 
-  for (const key of pending) {
+  for (const item of work) {
+    const key = item.key;
     if (synced.length >= MAX_PER_RUN) break;
     if (Date.now() - started > TIME_BUDGET_MS) break;
     if (!/^[^/]+\/[^/]+\/[^/]+$/.test(key)) {
@@ -248,9 +284,18 @@ export default async (req) => {
       const rec = await dataStore.get(key, { type: "json" });
       if (!rec) { failed.push({ key, error: "記錄讀取為空" }); continue; }
 
-      const projFolder = await driveEnsureFolder(token, rec.project || key.split("/")[0], rootId, folderCache);
-      const folderName = (rec.code || "NA") + "_" + tpeStamp(rec.uploadedAt) + "_" + sess6(rec.session);
-      const sessFolder = await driveEnsureFolder(token, folderName, projFolder, folderCache);
+      // 更新模式沿用先前記帳的資料夾；建檔模式才找／建資料夾
+      const prev = item.mode === "update" ? logDump[key] : null;
+      let projFolder, sessFolder, folderName;
+      if (prev && prev.folderId) {
+        projFolder = prev.projectFolderId || null;
+        sessFolder = prev.folderId;
+        folderName = prev.folder || "";
+      } else {
+        projFolder = await driveEnsureFolder(token, rec.project || key.split("/")[0], rootId, folderCache);
+        folderName = (rec.code || "NA") + "_" + tpeStamp(rec.uploadedAt) + "_" + sess6(rec.session);
+        sessFolder = await driveEnsureFolder(token, folderName, projFolder, folderCache);
+      }
 
       const files = [];
       const ema = Array.isArray(rec.ema) ? rec.ema : [];
@@ -267,9 +312,13 @@ export default async (req) => {
       if (Array.isArray(rec.location)    && rec.location.length)    files.push(["軌跡.json", rec.location]);
       if (Array.isArray(rec.environment) && rec.environment.length) files.push(["環境.json", rec.environment]);
 
+      const prevFiles = new Map(((prev && prev.files) || []).map((f) => [f.name, f.id]));
       const uploaded = [];
       for (const [name, obj] of files) {
-        const fid = await driveUploadJSON(token, name, obj, sessFolder);
+        const existingId = prevFiles.get(name);
+        const fid = existingId
+          ? await driveUpdateJSON(token, existingId, obj)     // 補傳：同名檔原地更新
+          : await driveUploadJSON(token, name, obj, sessFolder);
         uploaded.push({ name, id: fid });
       }
       await logStore.setJSON(key, {
@@ -279,7 +328,7 @@ export default async (req) => {
         projectFolderId: projFolder,
         files: uploaded,
       });
-      synced.push(key);
+      synced.push(item.mode === "update" ? key + "（更新）" : key);
     } catch (e) {
       failed.push({ key, error: String(e.message || e).slice(0, 200) });
     }
@@ -288,10 +337,11 @@ export default async (req) => {
   return json({
     ok: true,
     scanned: allKeys.length,
-    pending: pending.length,
+    pending: pending.length + updates.length,
     synced,
     skipped,
-    remaining: pending.length - synced.length - skipped.length,
+    inProgress,
+    remaining: pending.length + updates.length - synced.length - skipped.length,
     failed,
   });
 };
