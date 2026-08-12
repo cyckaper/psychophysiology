@@ -82,11 +82,13 @@ footer.transition{margin-top:22px;font-size:.75rem;color:var(--moss)}
 footer.transition a{color:var(--moss)}
 @media (max-width:560px){.formrow{grid-template-columns:1fr}}
 </style>
+<script src="i18n.js" defer></script>
 </head>
 <body>
 <div class="wrap">
 
-<a class="back" href="index.html">← 專案列表</a>
+<a class="back" href="index.html" data-i18n="nav.back">← 專案列表</a>
+<span id="langSlot" style="float:right"></span>
 
 <div class="head">
   <div class="code" id="hCode"></div>
@@ -100,60 +102,60 @@ footer.transition a{color:var(--moss)}
 <div id="banner" class="banner"></div>
 
 <div class="stations" role="tablist" aria-label="作業站">
-  <button class="station" role="tab" id="tab-settings" aria-selected="true"  data-panel="settings"><span class="n">1</span>設定</button>
-  <button class="station" role="tab" id="tab-zones"    aria-selected="false" data-panel="zones"><span class="n">2</span>範圍</button>
-  <button class="station" role="tab" id="tab-survey"   aria-selected="false" data-panel="survey"><span class="n">3</span>問卷</button>
-  <button class="station" role="tab" id="tab-data"     aria-selected="false" data-panel="data"><span class="n">4</span>資料</button>
+  <button class="station" role="tab" id="tab-settings" aria-selected="true"  data-panel="settings"><span class="n">1</span><span data-i18n="st.settings.short">設定</span></button>
+  <button class="station" role="tab" id="tab-zones"    aria-selected="false" data-panel="zones"><span class="n">2</span><span data-i18n="st.zones.short">範圍</span></button>
+  <button class="station" role="tab" id="tab-survey"   aria-selected="false" data-panel="survey"><span class="n">3</span><span data-i18n="st.survey.short">問卷</span></button>
+  <button class="station" role="tab" id="tab-data"     aria-selected="false" data-panel="data"><span class="n">4</span><span data-i18n="st.data.short">資料</span></button>
 </div>
 
 <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
-  <h2>專案設定</h2>
-  <p class="desc">名稱與狀態。專案代號是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
+  <h2 data-i18n="hub.settingsTitle">專案設定</h2>
+  <p class="desc" data-i18n="hub.settingsDesc">名稱與狀態。專案代號是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
   <div class="formrow">
-    <label for="fId">專案代號</label>
+    <label for="fId" data-i18n="home.fId">專案代號</label>
     <input type="text" id="fId" class="mono" readonly>
   </div>
   <div class="formrow">
-    <label for="fName">專案名稱</label>
+    <label for="fName" data-i18n="home.fName">專案名稱</label>
     <input type="text" id="fName" autocomplete="off">
   </div>
   <div class="formrow">
-    <label for="fNote">備註</label>
+    <label for="fNote" data-i18n="home.fNote">備註</label>
     <input type="text" id="fNote" autocomplete="off">
   </div>
   <div class="formrow">
-    <label for="fStatus">狀態</label>
+    <label for="fStatus" data-i18n="hub.status">狀態</label>
     <select id="fStatus">
-      <option value="active">進行中（手機端可選）</option>
-      <option value="archived">封存（手機端不顯示）</option>
+      <option value="active" data-i18n="hub.statusActive">進行中（手機端可選）</option>
+      <option value="archived" data-i18n="hub.statusArch">封存（手機端不顯示）</option>
     </select>
   </div>
-  <button class="primary" id="saveBtn">儲存設定</button>
+  <button class="primary" id="saveBtn" data-i18n="hub.save">儲存設定</button>
   <p class="msg" id="saveMsg" role="status"></p>
 
   <div class="danger">
-    <h3>自清單移除</h3>
-    <p>只移除登記，讓專案不再出現在清單與手機端；已儲存的範圍、問卷與量測資料都保留在後端，重新以相同代號建立即可復原。</p>
-    <button class="ghost" id="deleteBtn">自清單移除</button>
+    <h3 data-i18n="hub.removeTitle">自清單移除</h3>
+    <p data-i18n="hub.removeDesc">只移除登記，讓專案不再出現在清單與手機端；已儲存的範圍、問卷與量測資料都保留在後端，重新以相同代號建立即可復原。</p>
+    <button class="ghost" id="deleteBtn" data-i18n="hub.removeTitle">自清單移除</button>
   </div>
 </section>
 
 <section class="panel" id="panel-zones" role="tabpanel" aria-labelledby="tab-zones" hidden>
-  <h2>反應區範圍</h2>
-  <p class="desc">在地圖上畫定不規則多邊形反應區。受測者走入區內時，手機自動擷取當下生理與環境資料並跳出現場問卷；走出區外則作廢未完成的問卷。畫區時匯入讀地站的基地資料作為底圖參考，建置中。</p>
-  <a class="open" id="openZones" href="#">開啟範圍設定</a>
+  <h2 data-i18n="hub.zonesTitle">反應區範圍</h2>
+  <p class="desc" data-i18n="hub.zonesDesc">在地圖上畫定不規則多邊形反應區。受測者走入區內時，手機自動擷取當下生理與環境資料並跳出現場問卷；走出區外則作廢未完成的問卷。畫區時匯入讀地站的基地資料作為底圖參考，建置中。</p>
+  <a class="open" id="openZones" href="#" data-i18n="hub.zonesOpen">開啟範圍設定</a>
 </section>
 
 <section class="panel" id="panel-survey" role="tabpanel" aria-labelledby="tab-survey" hidden>
-  <h2>問卷設計</h2>
-  <p class="desc">上傳現成問卷（PDF 或 Word），AI 解析為題目清單並產生多語系譯文草稿；選定量尺範圍、補上開放填答即可完成。入組問卷以範本一鍵套用。問卷觸發方式（範圍、定時或兩者）也在此站設定。</p>
-  <a class="open" id="openSurvey" href="#">開啟問卷設計</a>
+  <h2 data-i18n="hub.surveyTitle">問卷設計</h2>
+  <p class="desc" data-i18n="hub.surveyDesc">上傳現成問卷（PDF 或 Word），AI 解析為題目清單並產生多語系譯文草稿；選定量尺範圍、補上開放填答即可完成。入組問卷以範本一鍵套用。問卷觸發方式（範圍、定時或兩者）也在此站設定。</p>
+  <a class="open" id="openSurvey" href="#" data-i18n="hub.surveyOpen">開啟問卷設計</a>
 </section>
 
 <section class="panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data" hidden>
-  <h2>資料與交接</h2>
-  <p class="desc">檢視各場次軌跡與心率路線圖、匯出 Excel。場次上傳後自動轉存 Google Drive，建置中；讀人資料包可自此匯出，交接給收斂（分區與動線規劃）站。</p>
-  <a class="open" id="openConsole" href="#">開啟資料主控台</a>
+  <h2 data-i18n="hub.dataTitle">資料與交接</h2>
+  <p class="desc" data-i18n="hub.dataDesc">檢視各場次軌跡與心率路線圖、匯出 Excel。場次上傳後自動轉存 Google Drive，建置中；讀人資料包可自此匯出，交接給收斂（分區與動線規劃）站。</p>
+  <a class="open" id="openConsole" href="#" data-i18n="hub.dataOpen">開啟資料主控台</a>
 </section>
 
 <footer class="transition">

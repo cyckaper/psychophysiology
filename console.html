@@ -105,36 +105,37 @@
   details.adv summary{cursor:pointer;font-size:13.5px;color:var(--soft,#6b6750);}
   .advnote{font-size:12.5px;color:var(--soft,#6b6750);margin:6px 0 8px;max-width:640px;}
 </style>
+<script src="i18n.js" defer></script>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1><span>HEALS</span><span class="zh">場域研究 · 專案資料主控台</span></h1>
-    <p class="sub">一個專案、多位參與者（各一編號＝一組配對的 Apple Watch＋iPhone）。開頁自動抓回本專案所有已上傳場次，依時間對接出帶 GPS 的資料，全員疊在地圖上，可產出專案 Excel（每人一分頁）或存到 Google Drive。</p>
+    <h1><span>HEALS</span><span class="zh" data-i18n="console.title">專案資料主控台</span></h1><span id="langSlot" style="float:right"></span>
+    <p class="sub" data-i18n="console.sub">一個專案、多位參與者（各一編號＝一組配對的 Apple Watch＋iPhone）。開頁自動抓回本專案所有已上傳場次，依時間對接出帶 GPS 的資料，全員疊在地圖上，可產出專案 Excel（每人一分頁）或存到 Google Drive。</p>
   </header>
   <div class="rule"></div>
 
   <div class="projbar" style="align-items:center">
-    <a class="backlink" id="backLink" href="index.html">← 返回專案</a>
+    <a class="backlink" id="backLink" href="index.html" data-i18n="nav.backProject">← 返回專案</a>
     <span class="chip" id="projChip">—</span>
     <span style="flex:1"></span>
-    <button class="btn" id="btnExport">產出專案 Excel</button>
-    <button class="btn ghost" id="btnDrive">存到 Google Drive</button>
+    <button class="btn" id="btnExport" data-i18n="console.export">產出專案 Excel</button>
+    <button class="btn ghost" id="btnDrive" data-i18n="console.drive">存到 Google Drive</button>
   </div>
   <div class="stnav" id="stnav" style="display:none">
-    <a data-st="settings">1 設定</a>
-    <a data-st="zones">2 範圍</a>
-    <a data-st="survey">3 問卷</a>
-    <a data-st="data" class="on">4 資料</a>
+    <a data-st="settings" data-i18n="st.settings">1 設定</a>
+    <a data-st="zones" data-i18n="st.zones">2 範圍</a>
+    <a data-st="survey" data-i18n="st.survey">3 問卷</a>
+    <a data-st="data" class="on" data-i18n="st.data">4 資料</a>
   </div>
   <div class="note" id="driveNote" style="display:none"></div>
 
   <div class="note" id="feNote" style="display:none"></div>
 
-  <div class="lbl">參與者（編號 × 場次）</div>
+  <div class="lbl" data-i18n="console.parts">參與者（編號 × 場次）</div>
   <div class="pcards" id="pcards"></div>
   <details class="adv" id="advLocal">
-    <summary>進階：本機離線模式（不經後端）</summary>
+    <summary data-i18n="console.adv">進階：本機離線模式（不經後端）</summary>
     <p class="advnote">展開後，各卡片會出現拖檔區，可把 HealthProbe 匯出的生理／軌跡／環境 JSON 直接拖入覆蓋；也可手動新增參與者。此模式資料僅在本機處理，作為後端抓不到時的備援。</p>
     <button class="addbtn" id="btnAdd"><span style="font-size:17px;line-height:0">＋</span> 新增參與者</button>
   </details>

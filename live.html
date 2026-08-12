@@ -42,24 +42,25 @@
     border:1px dashed var(--line);border-radius:12px;background:var(--paper);}
   .hrchip{font-weight:700;color:var(--clay);}
 </style>
+<script src="i18n.js" defer></script>
 </head>
 <body>
 <div class="wrap">
-  <h1>HEALS<span class="zh">即時監看</span></h1>
-  <p class="sub">走測中的裝置每半分鐘回報一次位置與最近心率；超過三分鐘沒回報就視為離線。心率來自 Apple Watch 經 HealthKit 遞送，可能落後實際數十秒到數分鐘。</p>
+  <h1>HEALS<span class="zh" data-i18n="live.title">即時監看</span></h1><span id="langSlot" style="float:right"></span>
+  <p class="sub" data-i18n="live.sub">走測中的裝置每半分鐘回報一次位置與最近心率；超過三分鐘沒回報就視為離線。心率來自 Apple Watch 經 HealthKit 遞送，可能落後實際數十秒到數分鐘。</p>
   <div class="rule"></div>
 
   <div class="bar">
-    <a class="backlink" href="index.html">← 專案列表</a>
+    <a class="backlink" href="index.html" data-i18n="nav.back">← 專案列表</a>
     <span style="flex:1"></span>
-    <label class="meta" for="projSel">範圍</label>
-    <select id="projSel"><option value="__all__">全部專案</option></select>
+    <label class="meta" for="projSel" data-i18n="live.scope">範圍</label>
+    <select id="projSel"><option value="__all__" data-i18n="live.all">全部專案</option></select>
     <span class="meta" id="stamp">—</span>
   </div>
 
   <div class="me" id="me">
     <div class="hr"><span id="meHr">—</span><small> bpm</small></div>
-    <div class="info" id="meInfo">等待你的裝置回報…</div>
+    <div class="info" id="meInfo" data-i18n="live.waiting">等待你的裝置回報…</div>
   </div>
 
   <div id="map"></div>
@@ -128,7 +129,7 @@
           ? d.projects
           : [{ id: d.project, name: d.project, devices: d.devices || [] }];
         render(groups);
-        $("#stamp").textContent = "更新於 " + new Date().toLocaleTimeString();
+        $("#stamp").textContent = I18N.t("live.updated") + " " + new Date().toLocaleTimeString();
       })
       .catch(function(e){ $("#stamp").textContent = "更新失敗：" + e.message; });
   }
@@ -164,12 +165,12 @@
       var devLine = devs.length
         ? devs.map(function(dv){
             return (dv.code || "？") + "（<span class='hrchip'>♥" + (dv.hr != null ? dv.hr : "—") +
-                   "</span>・" + dv.ageSec + " 秒前）";
+                   "</span>・" + dv.ageSec + " " + I18N.t("live.secAgo") + "）";
           }).join("　")
-        : "<span class='meta'>目前沒有裝置在回報</span>";
+        : "<span class='meta'>" + I18N.t('live.noneHere') + "</span>";
       card.innerHTML =
         '<div class="head"><span class="dot" style="background:' + color + '"></span>' +
-        '<span class="name"></span><span class="count">' + devs.length + ' 人測試中</span></div>' +
+        '<span class="name"></span><span class="count">' + devs.length + ' ' + I18N.t('home.testing') + '</span></div>' +
         '<div class="devs">' + devLine + "</div>";
       card.querySelector(".name").textContent = g.name || g.id;
       box.appendChild(card);
@@ -178,9 +179,7 @@
     if (!total) {
       var e = document.createElement("div");
       e.className = "empty";
-      e.textContent = myCode
-        ? "還沒收到你的裝置回報。開始走測後約半分鐘內會出現。"
-        : "目前沒有進行中的量測。";
+      e.textContent = myCode ? I18N.t("live.noneMine") : I18N.t("live.noneAll");
       box.appendChild(e);
     }
 
@@ -194,11 +193,11 @@
       $("#me").style.display = "flex";
       if (meFound) {
         $("#meHr").textContent = meFound.hr != null ? meFound.hr : "—";
-        $("#meInfo").textContent = "編號 " + meFound.code + "・位置與心率更新於 " + meFound.ageSec + " 秒前";
+        $("#meInfo").textContent = meFound.code + "・" + I18N.t("live.updated") + " " + meFound.ageSec + " " + I18N.t("live.secAgo");
         if (meFound.lat != null) map.setView([meFound.lat, meFound.lng], Math.max(map.getZoom(), 16));
       } else {
         $("#meHr").textContent = "—";
-        $("#meInfo").textContent = "等待你的裝置回報…（開始走測後約半分鐘）";
+        $("#meInfo").textContent = I18N.t("live.waiting");
       }
     }
   }
@@ -206,6 +205,7 @@
   loadProjects();
   refresh();
   timer = setInterval(refresh, 20000);
+  window.onLangChange = function(){ refresh(); };   // 切語言時重繪地圖標籤與清單
 })();
 </script>
 </body>

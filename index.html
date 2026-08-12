@@ -72,52 +72,54 @@ details.archived summary{cursor:pointer;font-size:.9rem;color:var(--moss);margin
   padding:10px 14px;font-size:.85rem;margin-bottom:18px;display:none}
 @media (max-width:560px){.formrow{grid-template-columns:1fr}.hint{grid-column:1}}
 </style>
+<script src="i18n.js" defer></script>
 </head>
 <body>
 <div class="wrap">
 
 <header class="site">
-  <div class="brand">讀人 · 即時心理生理研究平台<small>HEALS Design · 場域生心理量測</small></div>
+  <div class="brand"><span data-i18n="site.name">讀人 · 即時心理生理研究平台</span><small data-i18n="site.sub">HEALS Design · 場域生心理量測</small></div>
   <nav class="site">
-    <a href="live.html">即時監看</a>
-    <a href="guide.html">操作手冊</a>
+    <a href="live.html" data-i18n="nav.live">即時監看</a>
+    <a href="guide.html" data-i18n="nav.guide">操作手冊</a>
+    <span id="langSlot" style="margin-left:14px"></span>
   </nav>
 </header>
 
-<h1>專案列表</h1>
-<p class="lede">一切以專案為中心：範圍、問卷、執行與資料，都以專案代號歸檔。點入專案後依作業順序逐站設定。</p>
+<h1 data-i18n="home.h1">專案列表</h1>
+<p class="lede" data-i18n="home.lede">一切以專案為中心：範圍、問卷、執行與資料，都以專案代號歸檔。點入專案後依作業順序逐站設定。</p>
 
 <div id="banner" class="banner"></div>
 
 <section class="panel" aria-labelledby="createTitle">
-  <h2 id="createTitle">建立專案</h2>
+  <h2 id="createTitle" data-i18n="home.createTitle">建立專案</h2>
   <div class="formrow">
-    <label for="pid">專案代號</label>
+    <label for="pid" data-i18n="home.fId">專案代號</label>
     <input type="text" id="pid" class="mono" maxlength="32" autocomplete="off"
-           placeholder="例：aa、park2026">
-    <p class="hint">英數短碼（可含 - 與 _），是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
+           data-i18n-ph="home.phId" placeholder="例：aa、park2026">
+    <p class="hint" data-i18n="home.fIdHint">英數短碼（可含 - 與 _），是所有資料歸檔與跨檔合併的欄位鍵，建立後不可更改。</p>
   </div>
   <div class="formrow">
-    <label for="pname">專案名稱</label>
-    <input type="text" id="pname" autocomplete="off" placeholder="例：大安森林公園走測（2026 春）">
+    <label for="pname" data-i18n="home.fName">專案名稱</label>
+    <input type="text" id="pname" autocomplete="off" data-i18n-ph="home.phName" placeholder="例：大安森林公園走測（2026 春）">
   </div>
   <div class="formrow">
-    <label for="pnote">備註</label>
-    <input type="text" id="pnote" autocomplete="off" placeholder="選填：案場、期程、負責人">
+    <label for="pnote" data-i18n="home.fNote">備註</label>
+    <input type="text" id="pnote" autocomplete="off" data-i18n-ph="home.phNote" placeholder="選填：案場、期程、負責人">
   </div>
-  <button class="primary" id="createBtn">建立專案</button>
+  <button class="primary" id="createBtn" data-i18n="home.createBtn">建立專案</button>
   <p class="msg" id="createMsg" role="status"></p>
 </section>
 
 <div class="listhead">
-  <h2>進行中</h2>
+  <h2 data-i18n="home.active">進行中</h2>
   <span class="count" id="activeCount"></span>
 </div>
 <div class="grid" id="activeGrid"></div>
-<p class="empty" id="activeEmpty" hidden>尚無專案。建立第一個專案後，範圍、問卷與量測資料都會以專案代號歸檔。</p>
+<p class="empty" id="activeEmpty" data-i18n="home.empty" hidden>尚無專案。建立第一個專案後，範圍、問卷與量測資料都會以專案代號歸檔。</p>
 
 <details class="archived" id="archivedWrap" hidden>
-  <summary>已封存的專案（<span id="archivedCount">0</span>）</summary>
+  <summary><span data-i18n="home.archivedWrap">已封存的專案</span>（<span id="archivedCount">0</span>）</summary>
   <div class="grid" id="archivedGrid"></div>
 </details>
 
@@ -145,12 +147,12 @@ function cardEl(p){
   a.className = "card";
   a.href = "project.html?id=" + encodeURIComponent(p.id);
   const stampClass = p.status === "archived" ? "archived" : "active";
-  const stampText  = p.status === "archived" ? "封存" : "進行中";
+  const stampText  = p.status === "archived" ? I18N.t("home.archived") : I18N.t("home.active");
   const n = liveCounts[p.id] || 0;
   a.innerHTML =
     '<div class="code"></div>' +
     '<div class="name"></div>' +
-    (n > 0 ? '<div class="livebadge">● ' + n + ' 人測試中</div>' : '') +
+    (n > 0 ? '<div class="livebadge">● ' + n + ' ' + I18N.t("home.testing") + '</div>' : '') +
     '<div class="meta"><span class="stamp '+stampClass+'">'+stampText+'</span><span class="time"></span></div>';
   a.querySelector(".code").textContent = p.id;
   a.querySelector(".name").textContent = p.name || p.id;
@@ -229,6 +231,7 @@ $("createBtn").addEventListener("click", createProject);
 });
 load();
 setInterval(load, 30000);   // 每 30 秒刷新清單與測試中人數
+window.onLangChange = function(){ load(); };   // 切語言時重繪卡片內的動態字串
 </script>
 </body>
 </html>
